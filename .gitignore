@@ -1,0 +1,56 @@
+# Java / Gradle
+backend/build/
+backend/.gradle/
+backend/bin/
+*.class
+*.jar
+*.war
+
+# Python
+__pycache__/
+rag-service/.venv/
+rag-service/venv/
+*.pyc
+*.pyo
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# Node.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+docker-data/
+
+# Logs
+*.log
+logs/
+
+# Generated Proto
+*_pb2.py
+*_pb2_grpc.py
+*_pb2.pyi
+
+# Coverage
+coverage/
+htmlcov/
+.coverage

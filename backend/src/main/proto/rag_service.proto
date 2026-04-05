@@ -1,0 +1,68 @@
+syntax = "proto3";
+package dhara.rag;
+
+option java_multiple_files = true;
+option java_package = "com.dhara.grpc";
+
+service RagService {
+  rpc Search (SearchRequest) returns (SearchResponse);
+  rpc Ask (AskRequest) returns (AskResponse);
+  rpc GenerateEmbedding (EmbeddingRequest) returns (EmbeddingResponse);
+}
+
+message SearchRequest {
+  string query = 1;
+  string language = 2;
+  int32 top_k = 3;
+  repeated string filters = 4;
+}
+
+message SearchResponse {
+  repeated SearchResult results = 1;
+  float search_time_ms = 2;
+}
+
+message SearchResult {
+  string source_type = 1;
+  int64 source_id = 2;
+  string title = 3;
+  string snippet = 4;
+  float score = 5;
+  map<string, string> metadata = 6;
+}
+
+message AskRequest {
+  string question = 1;
+  string language = 2;
+  string user_tier = 3;
+}
+
+message AskResponse {
+  string answer = 1;
+  repeated Citation citations = 2;
+  string llm_provider = 3;
+  int32 tokens_used = 4;
+  float cost_usd = 5;
+}
+
+message Citation {
+  string source_type = 1;
+  int64 source_id = 2;
+  string title = 3;
+  string section_number = 4;
+  string snippet = 5;
+}
+
+message EmbeddingRequest {
+  repeated string texts = 1;
+}
+
+message EmbeddingResponse {
+  repeated EmbeddingVector embeddings = 1;
+  string model = 2;
+  int32 dimension = 3;
+}
+
+message EmbeddingVector {
+  repeated float values = 1;
+}
