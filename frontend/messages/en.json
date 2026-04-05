@@ -1,0 +1,136 @@
+{
+  "common": {
+    "appName": "Dhara",
+    "tagline": "AI flowing through the law",
+    "statutes": "Statutes",
+    "judgments": "Judgments",
+    "sros": "SROs",
+    "powered": "Powered",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "noResults": "No results found"
+  },
+  "nav": {
+    "search": "Search",
+    "ask": "Ask AI",
+    "statutes": "Statutes",
+    "judgments": "Judgments",
+    "pricing": "Pricing",
+    "login": "Login",
+    "register": "Register",
+    "profile": "Profile",
+    "logout": "Logout"
+  },
+  "search": {
+    "placeholder": "Type your legal question...",
+    "startSearching": "Start Searching",
+    "results": "{count} results found",
+    "noResults": "No results found for your query.",
+    "filterBy": "Filter by",
+    "allTypes": "All types",
+    "yearRange": "Year range"
+  },
+  "ask": {
+    "placeholder": "Ask a legal question...",
+    "title": "AI Legal Assistant",
+    "subtitle": "Ask questions about Bangladeshi law",
+    "thinking": "Thinking...",
+    "citations": "Sources",
+    "disclaimer": "AI responses may contain errors. Always verify with official sources."
+  },
+  "features": {
+    "title": "Why Dhara?",
+    "aiSearch": {
+      "title": "AI-Powered Search",
+      "description": "Natural language search across all Bangladeshi legal documents"
+    },
+    "caseAnalysis": {
+      "title": "Case Analysis",
+      "description": "AI-generated case summaries and citation mapping"
+    },
+    "bilingual": {
+      "title": "Bilingual Support",
+      "description": "Full support for both Bengali and English queries"
+    },
+    "citations": {
+      "title": "Verified Citations",
+      "description": "Every AI answer backed by real legal citations"
+    }
+  },
+  "legal": {
+    "statute": "Statute",
+    "judgment": "Judgment",
+    "sro": "SRO",
+    "section": "Section",
+    "activeLaw": "Active Law",
+    "repealed": "Repealed",
+    "court": "Court",
+    "bench": "Bench",
+    "date": "Date",
+    "citation": "Citation",
+    "headnotes": "Headnotes",
+    "fullText": "Full Text",
+    "relatedCases": "Related Cases",
+    "amendments": "Amendments",
+    "sections": "Sections",
+    "browseSections": "Browse Sections"
+  },
+  "auth": {
+    "loginTitle": "Login to Dhara",
+    "registerTitle": "Create Account",
+    "email": "Email",
+    "password": "Password",
+    "name": "Full Name",
+    "barCouncilId": "Bar Council ID (optional)",
+    "loginButton": "Login",
+    "registerButton": "Register",
+    "googleLogin": "Continue with Google",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signUp": "Sign up",
+    "signIn": "Sign in"
+  },
+  "pricing": {
+    "title": "Choose Your Plan",
+    "subtitle": "Flexible plans for every legal professional",
+    "free": {
+      "name": "Free",
+      "price": "৳0",
+      "period": "forever",
+      "features": ["5 AI queries per day", "Basic search", "Browse statutes & judgments"]
+    },
+    "student": {
+      "name": "Student",
+      "price": "৳299",
+      "period": "per month",
+      "features": ["30 AI queries per day", "Advanced search", "Case summaries", "Citation mapping"]
+    },
+    "professional": {
+      "name": "Professional",
+      "price": "৳999",
+      "period": "per month",
+      "features": ["Unlimited AI queries", "Premium LLM models", "Case comparison", "Priority support"]
+    },
+    "firm": {
+      "name": "Law Firm",
+      "price": "৳4,999",
+      "period": "per month",
+      "features": ["Unlimited everything", "Team management", "API access", "Dedicated support", "Custom integrations"]
+    },
+    "subscribe": "Subscribe",
+    "currentPlan": "Current Plan"
+  },
+  "profile": {
+    "title": "My Profile",
+    "subscription": "Subscription",
+    "usage": "Usage",
+    "queriesUsed": "Queries used today",
+    "memberSince": "Member since"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "unauthorized": "Please login to continue.",
+    "rateLimit": "You have exceeded your daily query limit.",
+    "network": "Network error. Please check your connection."
+  }
+}
