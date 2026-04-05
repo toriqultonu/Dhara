@@ -42,7 +42,7 @@ public class RagServiceClient {
         // var grpcResponse = stub.search(grpcRequest);
 
         // Placeholder response until gRPC stubs are generated
-        return new SearchResponse(List.of(), 0);
+        return new SearchResponse(List.of(), "", 0f);
     }
 
     public RagAskResponse ask(AskRequest request, String userId, String userTier) {

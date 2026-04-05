@@ -50,14 +50,14 @@ public class SslCommerzService {
 
     public String initPayment(String userEmail, Long planId, String currency) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
         SubscriptionPlan plan = planRepository.findById(planId)
-                .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Plan", planId));
 
         String transactionId = "DHARA-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
         log.info("Initiating SSLCommerz payment: txn={}, user={}, plan={}, amount={}",
-                transactionId, user.getEmail(), plan.getName(), plan.getPriceMonthly());
+                transactionId, user.getEmail(), plan.getName(), plan.getPriceBdt());
 
         // TODO: Make actual HTTP call to SSLCommerz API
         // POST ${baseUrl}/gwprocess/v4/api.php
