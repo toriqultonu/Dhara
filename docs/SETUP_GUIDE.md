@@ -53,8 +53,8 @@ Complete instructions for running the Dhara platform locally and in production, 
 git clone https://github.com/your-org/dhara.git
 cd dhara
 
-# Create .env from template
-cp .env.example .env
+# Create .env.example from template
+cp .env.example .env.example
 ```
 
 Edit `.env` — the defaults work out of the box for local dev. Only fill in API keys if you want to use remote LLM providers.
@@ -139,8 +139,8 @@ curl http://localhost:8080/health
 ```bash
 cd rag-service
 
-# Create .env (if not using root-level .env)
-cp .env.example .env
+# Create .env.example (if not using root-level .env.example)
+cp .env.example .env.example
 
 # Install dependencies
 uv sync
@@ -218,7 +218,7 @@ sudo usermod -aG docker $USER
 ```bash
 git clone https://github.com/your-org/dhara.git
 cd dhara
-cp .env.example .env
+cp .env.example .env.example
 ```
 
 Edit `.env` for production — **you MUST change these**:
@@ -326,7 +326,7 @@ The LLM generates answers from retrieved legal documents. Change it by editing `
 #### Local Models (via Ollama)
 
 ```bash
-# .env
+# .env.example
 LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen3:14b
@@ -338,7 +338,7 @@ To switch to a different local model:
 # Pull the new model
 ollama pull deepseek-r1:8b
 
-# Update .env
+# Update .env.example
 OLLAMA_MODEL=deepseek-r1:8b
 ```
 

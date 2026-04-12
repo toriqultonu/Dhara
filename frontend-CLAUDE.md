@@ -421,6 +421,21 @@ describe("SearchBar", () => {
 
 ---
 
+## 🗺️ Codebase Knowledge Graph (RAG Reference)
+
+Use `graphify-out/` at the project root as a fast lookup index before reading frontend files cold.
+
+**Frontend-relevant communities in `graphify-out/GRAPH_REPORT.md`:**
+- **Community 0 — Frontend API Client:** `ApiClient`, `ApiError` — maps to `frontend/lib/api.ts`
+- **Community 2 — RAG Ask Pipeline:** `AskRequest`, `AskResponse`, `Citation` — the types consumed by `app/ask/page.tsx` and `components/chat/`
+
+**Key frontend files indexed in `graphify-out/manifest.json`** (use timestamps to detect staleness):
+- All `frontend/app/**` pages, `frontend/components/**`, `frontend/lib/**`, `frontend/hooks/**`
+
+To find which component files relate to a UI concept (e.g. `SearchBar`, `CitationLink`), search `graphify-out/graph.json` by `label`. Filter edges by `source` path prefix `frontend\\` to stay scoped to frontend nodes only.
+
+---
+
 ## ⚠️ Common Pitfalls
 
 1. **Server vs Client Components** — Default is Server Component. Only add `"use client"` for interactivity (useState, event handlers, browser APIs).

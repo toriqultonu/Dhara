@@ -222,7 +222,7 @@ Usage:
 
 Switching local models:
     1. Pull new model: `ollama pull <model-name>`
-    2. Update .env: OLLAMA_MODEL=<model-name>
+    2. Update .env.example: OLLAMA_MODEL=<model-name>
     3. Restart rag-service. Done.
 """
 
@@ -393,7 +393,7 @@ To add a new provider:
 1. Create a new file: app/providers/llm/your_provider.py
 2. Implement the LLMProvider protocol
 3. Register it in the PROVIDERS dict below
-4. Set LLM_PROVIDER=your_provider in .env
+4. Set LLM_PROVIDER=your_provider in .env.example
 """
 
 from app.providers.base import LLMProvider
@@ -650,7 +650,7 @@ class Settings(BaseSettings):
     kafka_bootstrap_servers: str = "localhost:9092"
     kafka_usage_topic: str = "dhara.usage"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env.example", "env_file_encoding": "utf-8"}
 
 
 settings = Settings()
@@ -967,6 +967,37 @@ uv run pytest tests/services/              # Service tests only
 uv run pytest -k "test_ollama"             # Specific provider
 uv run pytest --cov=app --cov-report=html  # Coverage
 ```
+
+---
+
+## 🗺️ Codebase Knowledge Graph (RAG Reference)
+
+Use `graphify-out/` at the project root as a fast lookup index before reading RAG service files cold.
+
+**RAG service-relevant communities in `graphify-out/GRAPH_REPORT.md`:**
+- **Community 2 — RAG Ask Pipeline:** `AskRequest`, `AskResponse`, `Citation`, `RAGResponse`, `EmbeddingProvider`, `RerankerProvider`, ask router, RAG pipeline — the core request flow
+- **Community 3 — Provider Abstraction Protocols:** `LLMResponse` (21 edges — most connected node in entire graph), `EmbeddingResult`, `RerankResult`, `BGERerankerProvider`, `CohereRerankerProvider`, all factories — the full provider layer
+
+**God nodes in this service** (most cross-connected — touch these carefully):
+| Node | Edges | Why it matters |
+|------|-------|---------------|
+| `LLMResponse` | 21 | Return type for ALL LLM providers — changing it breaks every provider |
+| `RerankResult` | 15 | Return type for ALL rerankers |
+| `Factory for creating reranker providers.` | 15 | Central wiring point |
+| `RAGPipeline` | 15 | Orchestrates all providers — most complex service |
+| `EmbeddingResult` | 13 | Return type for ALL embedding providers |
+| `LLMRouter` | 12 | Routes queries across providers — key production logic |
+
+**Hyperedges to know** (multi-file relationships):
+- `RAG Provider Abstraction System` — `llm_provider_protocol`, `embedding_provider_protocol`, `reranker_provider_protocol` + all factories (all must stay in sync)
+- `RAG Pipeline Orchestration` — `rag_pipeline → search_service → llm_router → embedding_provider_protocol`
+
+**How to query:**
+- `graphify-out/graph.json` → filter edges by `source` path prefix `rag-service\\` to scope to this service
+- Search `label` field for a class name (e.g. `LLMRouter`, `BGERerankerProvider`) to find its node and all connected edges
+- `manifest.json` → check timestamps against current file mtimes to detect if graph is stale
+
+> **Staleness note:** If you add or modify a provider, run `/graphify` to rebuild — otherwise the graph won't reflect the new node connections.
 
 ---
 

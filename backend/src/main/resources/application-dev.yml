@@ -1,16 +1,17 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/dhara
-    username: dhara
-    password: dhara_secret
+    url: jdbc:postgresql://localhost:5433/dhara
+    username: postgres
+    password: 123456
   jpa:
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-  redis:
-    host: localhost
-    port: 6379
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
 logging:
   level:

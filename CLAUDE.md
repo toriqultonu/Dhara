@@ -383,6 +383,44 @@ Cloudflare CDN → Nginx → Spring Boot (:8080)
 
 ---
 
+## 🗺️ Codebase Knowledge Graph (RAG Reference)
+
+A pre-built knowledge graph of the entire Dhara codebase lives at:
+
+```
+graphify-out/
+├── graph.json          # Structured knowledge graph — 586 nodes, 750 edges, 52 communities
+├── graph.html          # Interactive visual explorer (open in browser)
+├── GRAPH_REPORT.md     # Summary: god nodes, communities, surprising connections
+├── manifest.json       # File index with last-modified timestamps (use to check staleness)
+├── cache/              # Raw extraction cache per file
+└── cost.json           # Token cost metadata
+```
+
+**When to use it:**
+- Before exploring the codebase cold — read `GRAPH_REPORT.md` first for the architectural overview
+- To find which files are related to a concept (e.g. `RagServiceClient`, `LLMRouter`, `ApiResponse`)
+- To understand inter-service dependencies without reading every file
+- To identify god nodes (most-connected abstractions) before making broad changes
+
+**How to query it:**
+- `graph.json` → search by `label`, `community`, or `source`/`target` edge fields
+- `manifest.json` → check if a file has changed since the graph was built (compare timestamps)
+- `GRAPH_REPORT.md` → read communities section to find which files cluster together
+
+**Key communities in the graph:**
+| Community | Topic | Key Nodes |
+|-----------|-------|-----------|
+| 0 | Frontend API Client | `ApiClient`, `ApiError` |
+| 1 | Project Architecture & Docs | Spring Boot, RAG service, Dhara overview |
+| 2 | RAG Ask Pipeline | `AskRequest`, `RAGResponse`, `EmbeddingProvider` |
+| 3 | Provider Abstraction | `LLMResponse`, `EmbeddingResult`, `RerankResult`, all factories |
+| 4 | Payment & Legal CRUD | `PaymentController`, `Statute`, `Section`, `StatuteRepository` |
+
+> **Staleness note:** The graph was built from a snapshot. If `manifest.json` timestamps differ from current file mtimes, re-run `/graphify` to rebuild.
+
+---
+
 ## 📋 Development Workflow with Claude Code
 
 ```bash

@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(mkdir -p infra/nginx)",
-      "Bash(mkdir -p docs)"
+      "Bash(mkdir -p docs)",
+      "Bash(grep -l @Slf4j /c/Github/Dhara/backend/src/main/java/com/dhara/**/*Service.java)",
+      "Bash(grep -n \"No citations\\\\|No amendments\\\\|cannot\\\\|error\\\\|Error\" /c/Github/Dhara/frontend/components/legal/*.tsx)",
+      "Bash(grep -n \"Date.now\\\\|Math.random\" /c/Github/Dhara/frontend/app/**/*.tsx)",
+      "Bash(gradle --version)",
+      "Bash(java --version)",
+      "Bash(python -c \"import graphify\")",
+      "Bash(pip install:*)",
+      "Bash(python -c \"import sys; open\\('.graphify_python', 'w'\\).write\\(sys.executable\\)\")",
+      "Bash(python -c ':*)",
+      "Bash(python:*)"
     ]
   }
 }

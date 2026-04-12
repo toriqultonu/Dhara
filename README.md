@@ -6,7 +6,7 @@ AI-powered legal research platform for Bangladeshi lawyers and law students. Sea
 
 ```bash
 # 1. Start infrastructure
-cp .env.example .env
+cp .env.example .env.example
 docker compose up -d
 
 # 2. Backend (port 8080)

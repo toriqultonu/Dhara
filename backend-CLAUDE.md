@@ -568,6 +568,21 @@ dhara:
 
 ---
 
+## 🗺️ Codebase Knowledge Graph (RAG Reference)
+
+Use `graphify-out/` at the project root as a fast lookup index before reading files cold.
+
+**Backend-relevant communities in `graphify-out/GRAPH_REPORT.md`:**
+- **Community 4 — Payment & API Response Layer:** `PaymentController`, `PlanController`, `Statute`, `Section`, `StatuteController`, `StatuteRepository`, `SectionRepository`
+- **Community 1 — Project Architecture:** Backend Spring Boot Service, `ApiResponse<T>`, `SearchService`, gRPC bridge
+- **God nodes to know:** `LLMResponse` (21 edges), `RAGPipeline` (15 edges), `SearchService` (8 edges), `ApiClient` (8 edges)
+
+**Hyperedge of note:** `Backend-to-RAG gRPC Bridge` — `backend_search_service → rag_service_client → grpc_rag_service_proto → RAGPipeline`
+
+To find which Java files implement a concept, search `graphify-out/graph.json` by `label` or filter edges by `source` file path. Use `manifest.json` to check if the graph is stale vs. current file timestamps.
+
+---
+
 ## ⚠️ Common Pitfalls
 
 1. **`@MockitoBean` not `@MockBean`** — Spring Boot 3.4+ deprecated `@MockBean`

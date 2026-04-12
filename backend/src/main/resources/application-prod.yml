@@ -8,10 +8,11 @@ spring:
       minimum-idle: 5
   jpa:
     show-sql: false
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      password: ${REDIS_PASSWORD:}
+      port: ${REDIS_PORT:6379}
 
 logging:
   level:

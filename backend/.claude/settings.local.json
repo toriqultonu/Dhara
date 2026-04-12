@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew.bat bootRun)",
+      "Bash(gradle wrapper:*)",
+      "Bash(where.exe gradle:*)",
+      "Read(//c/Program Files/**)",
+      "Bash(curl -sL -o C:/Github/Dhara/backend/gradle/wrapper/gradle-wrapper.jar \"https://raw.githubusercontent.com/gradle/gradle/v8.12.0/gradle/wrapper/gradle-wrapper.jar\")",
+      "Bash(cmd.exe //c \"gradlew.bat bootRun\")",
+      "Bash(cmd.exe //c \".\\\\gradlew.bat bootRun\")",
+      "Bash(where.exe java:*)",
+      "Read(//c/Users/Admin/.jdks/**)",
+      "Bash(reg query:*)",
+      "Bash(JAVA_HOME=\"C:/Users/Admin/.jdks/ms-21.0.10\" cmd.exe //c \"set JAVA_HOME=C:\\\\Users\\\\Admin\\\\.jdks\\\\ms-21.0.10 && .\\\\gradlew.bat bootRun\")",
+      "Bash(cmd.exe //c \"set JAVA_HOME=C:\\\\Users\\\\Admin\\\\.jdks\\\\ms-21.0.10 && .\\\\gradlew.bat bootRun\")",
+      "Bash(cmd.exe:*)",
+      "Read(//tmp/**)",
+      "Bash",
+      "Bash(curl -sL \"https://services.gradle.org/distributions/gradle-8.12-bin.zip\" -o gradle-8.12-bin.zip)"
+    ]
+  }
+}

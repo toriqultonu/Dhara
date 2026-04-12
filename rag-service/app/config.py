@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     kafka_bootstrap_servers: str = "localhost:9092"
     kafka_usage_topic: str = "dhara.usage"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env.example", "env_file_encoding": "utf-8"}
 
 
 settings = Settings()
