@@ -11,6 +11,16 @@ export interface PagedResponse<T> {
   size: number;
 }
 
+export interface StatuteListResponse {
+  id: number;
+  actNumber: string;
+  titleEn: string;
+  titleBn: string;
+  year: number;
+  category: string;
+  status: string;
+}
+
 export interface StatuteResponse {
   id: number;
   actNumber: string;
@@ -31,6 +41,15 @@ export interface SectionResponse {
   titleBn: string;
   contentEn: string;
   contentBn: string;
+  status: string;
+}
+
+export interface JudgmentListResponse {
+  id: number;
+  caseName: string;
+  citation: string;
+  court: string;
+  judgmentDate: string | null;
   status: string;
 }
 

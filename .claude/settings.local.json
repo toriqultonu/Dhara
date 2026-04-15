@@ -12,7 +12,18 @@
       "Bash(pip install:*)",
       "Bash(python -c \"import sys; open\\('.graphify_python', 'w'\\).write\\(sys.executable\\)\")",
       "Bash(python -c ':*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(mkdir *)",
+      "Bash(rm app/page.tsx app/search/page.tsx app/ask/page.tsx app/statutes/page.tsx \"app/statutes/[id]/page.tsx\" app/judgments/page.tsx \"app/judgments/[id]/page.tsx\" app/pricing/page.tsx app/profile/page.tsx \"app/\\(auth\\)/login/page.tsx\" \"app/\\(auth\\)/register/page.tsx\")",
+      "Bash(rmdir app/search app/ask app/statutes/[id] app/statutes app/judgments/[id] app/judgments app/pricing app/profile \"app/\\(auth\\)/login\" \"app/\\(auth\\)/register\" \"app/\\(auth\\)\")",
+      "Bash(curl -s http://localhost:8080/health)",
+      "Bash(PGPASSWORD=password psql *)",
+      "Bash(curl -s \"http://localhost:8080/api/statutes?page=0&size=10\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s \"http://localhost:8080/api/judgments?page=0&size=5\")",
+      "Bash(curl -s \"http://localhost:8080/api/statutes/1/sections\")",
+      "Bash(python3 *)",
+      "Bash(npx tsc *)"
     ]
   }
 }
