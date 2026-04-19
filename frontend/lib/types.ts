@@ -140,3 +140,111 @@ export interface ChatMessage {
   citations?: Citation[];
   timestamp: Date;
 }
+
+// ─── Document Management ───────────────────────────────────────────────────
+
+export type DocumentCategory = "contract" | "employment" | "nda" | "real-estate" | "business" | "personal" | "other";
+export type DocumentStatus = "draft" | "completed" | "shared";
+
+export interface DocumentListResponse {
+  id: number;
+  title: string;
+  category: DocumentCategory;
+  status: DocumentStatus;
+  tags: string[] | null;
+  shared: boolean;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export interface DocumentResponse {
+  id: number;
+  title: string;
+  category: DocumentCategory;
+  status: DocumentStatus;
+  content: string | null;
+  tags: string[] | null;
+  shared: boolean;
+  shareUrl: string | null;
+  templateId: number | null;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export interface DocumentStatsResponse {
+  total: number;
+  drafts: number;
+  completed: number;
+  shared: number;
+}
+
+export interface ShareDocumentResponse {
+  shareUrl: string;
+  expiresAt: string;
+}
+
+// ─── Templates ────────────────────────────────────────────────────────────
+
+export type TemplateCategory = "employment" | "contract" | "nda" | "real-estate" | "business" | "personal";
+
+export interface TemplateListResponse {
+  id: number;
+  title: string;
+  category: TemplateCategory;
+  description: string;
+  popularity: number;
+  preview: string | null;
+}
+
+export interface TemplateResponse extends TemplateListResponse {
+  content: string;
+}
+
+// ─── Clauses ──────────────────────────────────────────────────────────────
+
+export interface ClauseResponse {
+  id: number;
+  title: string;
+  category: string;
+  content: string;
+}
+
+// ─── Analysis ─────────────────────────────────────────────────────────────
+
+export interface AnalysisUploadResponse {
+  sessionId: string;
+  fileName: string;
+  pageCount: number;
+  wordCount: number;
+  extractedText: string;
+}
+
+export interface AnalysisQueryResponse {
+  answer: string;
+  references: LegalReference[];
+  confidence: number;
+}
+
+export interface LegalReference {
+  law: string;
+  section: string;
+  relevance: string;
+}
+
+export interface VerifyResponse {
+  documentType: string;
+  summary: { valid: number; warnings: number; issues: number };
+  results: {
+    valid: VerifyItem[];
+    warnings: VerifyItem[];
+    issues: VerifyItem[];
+  };
+}
+
+export interface VerifyItem {
+  section: string;
+  text: string;
+  law: string;
+  lawSection: string;
+  suggestion: string;
+}

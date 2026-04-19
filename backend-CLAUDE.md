@@ -1,7 +1,7 @@
 # CLAUDE.md — Dhara Backend (Spring Boot API)
 
 > **Service:** `backend/` — Spring Boot 3.x with Java 21
-> **Role:** API gateway, authentication, legal document CRUD, search proxy, subscriptions, rate limiting
+> **Role:** API gateway, authentication, legal document CRUD, search proxy, subscriptions, rate limiting, user document management, templates, clause library, document analysis/verification, file export
 > **Port:** 8080 (dev), configurable via `server.port`
 
 ---
@@ -14,6 +14,11 @@
 4. **Subscription Management** — Plans, payments (SSLCommerz), usage tracking
 5. **Rate Limiting** — Redis-based per user tier
 6. **Usage Analytics** — Kafka producer logging queries, tokens, costs
+7. **User Document Management** — CRUD for user-created legal documents, share/duplicate, stats
+8. **Document Templates** — 20+ seeded templates (employment, contract, NDA, real-estate, business, personal)
+9. **Clause Library** — 12+ seeded legal clauses (confidentiality, indemnification, force majeure, etc.)
+10. **Document Analysis** — Upload PDF/DOC/TXT, extract text, store in session, AI Q&A + compliance verification
+11. **File Export** — Export user documents as PDF (openhtmltopdf), DOCX (Apache POI), TXT
 
 ---
 
@@ -89,6 +94,40 @@ src/main/java/com/dhara/
 │   └── webhook/
 │       └── SslCommerzWebhookController.java  # IPN callback handler
 │
+├── document/                        # ★ User document management
+│   ├── DocumentController.java      # /api/documents — CRUD, stats, share, duplicate, export
+│   ├── DocumentService.java         # PDF (openhtmltopdf), DOCX (POI), TXT export; share UUID; duplicate
+│   └── dto/
+│       ├── DocumentListResponse.java  # record (id, title, category, status, tags, shared, createdAt, modifiedAt)
+│       ├── DocumentResponse.java      # record (+ content, shareUrl, templateId)
+│       ├── DocumentStatsResponse.java # record (total, drafts, completed, shared)
+│       ├── CreateDocumentRequest.java # record
+│       ├── UpdateDocumentRequest.java # record
+│       └── ShareDocumentResponse.java # record (shareUrl, expiresAt)
+│
+├── template/                        # ★ Legal document templates
+│   ├── TemplateController.java      # GET /api/templates (public), GET /api/templates/{id}
+│   ├── TemplateService.java
+│   └── dto/
+│       ├── TemplateListResponse.java  # record (id, title, category, description, popularity, preview)
+│       └── TemplateResponse.java      # record (+ content)
+│
+├── clause/                          # ★ Legal clause library
+│   ├── ClauseController.java        # GET /api/clauses (public), GET /api/clauses/{id}
+│   ├── ClauseService.java
+│   └── dto/
+│       └── ClauseResponse.java        # record (id, title, category, content)
+│
+├── analysis/                        # ★ Document analysis & verification
+│   ├── AnalysisController.java      # POST /api/analysis/upload, /query, /verify
+│   ├── AnalysisService.java         # Text extraction, session storage, AI Q&A (TODO: connect RAG), verification
+│   └── dto/
+│       ├── AnalysisUploadResponse.java # record (sessionId, fileName, pageCount, wordCount)
+│       ├── AnalysisQueryRequest.java   # record (sessionId, question)
+│       ├── AnalysisQueryResponse.java  # record (answer, references, confidence)
+│       ├── VerifyRequest.java          # record (sessionId)
+│       └── VerifyResponse.java         # record (documentType, summary, results[])
+│
 ├── ratelimit/
 │   ├── RateLimiter.java             # Interface
 │   ├── RedisRateLimiter.java        # Redis INCR + EXPIRE sliding window
@@ -104,7 +143,11 @@ src/main/java/com/dhara/
 │   ├── JudgmentJudgmentCitation.java# @Entity — judgment ↔ judgment cross-ref
 │   ├── SubscriptionPlan.java        # @Entity — id, name, priceBdt, aiQueriesPerDay, features
 │   ├── UserSubscription.java        # @Entity — id, user, plan, status, startedAt, expiresAt
-│   └── UsageLog.java                # @Entity — id, user, actionType, queryText, tokensUsed, llmProvider, costUsd
+│   ├── UsageLog.java                # @Entity — id, user, actionType, queryText, tokensUsed, llmProvider, costUsd
+│   ├── UserDocument.java            # @Entity — id, user (FK), title, category, status, content (TEXT), tags (String[]), shared, shareUrl, sharePermission, shareExpiresAt, template (FK nullable)
+│   ├── DocumentTemplate.java        # @Entity — id, title, category, description, content (TEXT), preview, popularity, status
+│   ├── LegalClause.java             # @Entity — id, title, category, content (TEXT), status
+│   └── AnalysisSession.java         # @Entity — id (String/UUID, not generated), user (FK), fileName, pageCount, wordCount, extractedText (TEXT)
 │
 ├── repository/
 │   ├── UserRepository.java
@@ -114,7 +157,11 @@ src/main/java/com/dhara/
 │   ├── SroRepository.java
 │   ├── SubscriptionPlanRepository.java
 │   ├── UserSubscriptionRepository.java
-│   └── UsageLogRepository.java
+│   ├── UsageLogRepository.java
+│   ├── UserDocumentRepository.java  # findByUserIdWithFilters (JPQL nullable status/category/search), countByUserId*, countByUserIdAndShared
+│   ├── DocumentTemplateRepository.java  # findWithFilters (JPQL ordered by popularity DESC)
+│   ├── LegalClauseRepository.java   # findByStatusOrderByTitleAsc, findByStatusAndCategoryOrderByTitleAsc
+│   └── AnalysisSessionRepository.java  # findByIdAndUserId (security: user can only see own sessions)
 │
 ├── kafka/
 │   ├── UsageEventProducer.java      # Sends usage events to Kafka
@@ -276,6 +323,8 @@ V3__create_rag_chunks.sql             # document_chunks with pgvector + tsvector
 V4__create_users_and_auth.sql         # users table
 V5__create_subscriptions.sql          # subscription_plans, user_subscriptions, usage_log
 V6__seed_subscription_plans.sql       # Insert FREE/STUDENT/PRO/FIRM plans
+V8__create_document_management.sql    # document_templates, legal_clauses, user_documents, analysis_sessions
+V9__seed_templates_and_clauses.sql    # 12 legal clauses + 20 document templates seeded
 ```
 
 ### Rules
@@ -390,6 +439,8 @@ public class SecurityConfig {
     //   GET  /api/judgments/**
     //   GET  /api/sros/**
     //   GET  /api/plans
+    //   GET  /api/templates/**
+    //   GET  /api/clauses/**
     //   POST /api/auth/login
     //   POST /api/auth/register
     //   GET  /health
@@ -401,6 +452,8 @@ public class SecurityConfig {
     //   GET  /api/my-subscription
     //   POST /api/subscribe
     //   POST /api/payment/init
+    //   GET/POST/PUT/DELETE /api/documents/**
+    //   POST /api/analysis/**
 
     // Rate-limited endpoints (Redis check before processing):
     //   POST /api/search
@@ -593,6 +646,10 @@ To find which Java files implement a concept, search `graphify-out/graph.json` b
 6. **Bengali text encoding** — Ensure PostgreSQL database uses `UTF-8` encoding
 7. **JPA N+1 queries** — Use `@EntityGraph` or `JOIN FETCH` for related entities
 8. **Lazy loading outside transaction** — Always use `@Transactional(readOnly = true)` for reads
+9. **Auth pattern in document endpoints** — Use `Long.parseLong(auth.getName())` to get userId from `Authentication auth` (same pattern as SubscriptionController)
+10. **AnalysisSession ID** — Uses `String` PK (UUID), no `@GeneratedValue` — caller generates UUID before save
+11. **Export dependencies** — `openhtmltopdf-pdfbox:1.0.10` for PDF, `poi-ooxml:5.3.0` for DOCX must be in build.gradle
+12. **Analysis AI responses** — `AnalysisService` currently returns placeholder responses; TODO: integrate with RAG service for real document Q&A
 
 ## Important Notes:
 - Memory Updates(THIS FILE): This file is my persistent memory. Always update this file with new knowledge, insights, lessons learned, and, or context gained  during our conversations -

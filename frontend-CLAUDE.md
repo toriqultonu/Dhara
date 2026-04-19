@@ -1,7 +1,7 @@
 # CLAUDE.md — Dhara Frontend (Next.js 15)
 
 > **Service:** `frontend/` — Next.js 15 + TypeScript + Tailwind CSS
-> **Role:** SSR web app — search, AI Q&A, statute/judgment browser, subscriptions, i18n
+> **Role:** SSR web app — search, AI Q&A, statute/judgment browser, document management, subscriptions, i18n
 > **Port:** 3000
 
 ---
@@ -16,6 +16,11 @@
 6. **Auth** — Login, register, profile management
 7. **Subscriptions** — Pricing page, plan selection, SSLCommerz/bKash payment
 8. **i18n** — Full Bengali (bn) + English (en) support with language toggle
+9. **Document Management** — User creates/edits legal documents with rich text editor, clause library, smart fields, auto-save
+10. **Legal Document Templates** — 50+ templates (employment, contract, NDA, real-estate, business, personal) to start from
+11. **Document Analysis** — Upload PDF/DOC/TXT, run AI Q&A against the document content
+12. **Document Verification** — Check uploaded document compliance against Bangladesh laws (green/yellow/red results)
+13. **File Export** — Export user documents as PDF, DOCX, or TXT
 
 ---
 
@@ -57,8 +62,19 @@ frontend/
 │   ├── pricing/
 │   │   └── page.tsx             # Subscription plans + payment
 │   │
-│   └── profile/
-│       └── page.tsx             # User profile, subscription status, usage
+│   ├── profile/
+│   │   └── page.tsx             # User profile, subscription status, usage
+│   │
+│   ├── documents/
+│   │   ├── page.tsx             # ★ Document management dashboard (list, stats, filter)
+│   │   └── [id]/
+│   │       └── page.tsx         # Document editor (rich text, clause library, auto-save, export)
+│   │
+│   ├── templates/
+│   │   └── page.tsx             # ★ Legal document templates browser (50+ templates)
+│   │
+│   └── analysis/
+│       └── page.tsx             # ★ 3-tab: Upload&Analyze | Verify | BD Legal Library
 │
 ├── components/
 │   ├── search/
@@ -86,10 +102,26 @@ frontend/
 │   │   ├── Sidebar.tsx          # Mobile navigation drawer
 │   │   └── LanguageToggle.tsx   # bn ↔ en switch
 │   │
+│   ├── documents/               # Document management components
+│   │   ├── DocumentCard.tsx     # Document list card with actions (delete/duplicate/share)
+│   │   ├── DocumentEditor.tsx   # Rich text editor (toolbar, auto-save, word count)
+│   │   ├── ClauseLibrarySidebar.tsx  # 12+ prebuilt legal clauses — insert into editor
+│   │   ├── SmartFieldsSidebar.tsx    # Placeholder fields (party names, dates, amounts)
+│   │   └── ExportModal.tsx      # Export PDF/DOCX/TXT modal
+│   │
+│   ├── templates/               # Template browser components
+│   │   ├── TemplateCard.tsx     # Template card with preview & use buttons
+│   │   └── TemplatePreviewModal.tsx  # Full template preview in modal
+│   │
+│   ├── analysis/                # Document analysis components
+│   │   ├── DocumentUploadZone.tsx    # Drag-and-drop file upload
+│   │   ├── AnalysisChat.tsx     # Chat interface for AI Q&A on uploaded document
+│   │   └── VerificationResults.tsx  # Color-coded compliance results (green/yellow/red)
+│   │
 │   └── ui/                      # Shared design system primitives
 │       ├── Button.tsx
 │       ├── Card.tsx
-│       ├── Modal.tsx
+│       ├── Modal.tsx            # Supports both `open` and `isOpen` props, optional `title`
 │       ├── Input.tsx
 │       ├── Select.tsx
 │       ├── Badge.tsx

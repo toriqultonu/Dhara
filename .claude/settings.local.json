@@ -23,7 +23,11 @@
       "Bash(curl -s \"http://localhost:8080/api/judgments?page=0&size=5\")",
       "Bash(curl -s \"http://localhost:8080/api/statutes/1/sections\")",
       "Bash(python3 *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(mkdir -p /home/technonext/Dhara/frontend/app/\\\\[locale\\\\]/documents/\\\\[id\\\\])",
+      "Bash(mkdir -p /home/technonext/Dhara/frontend/app/\\\\[locale\\\\]/templates)",
+      "Bash(mkdir -p /home/technonext/Dhara/frontend/app/\\\\[locale\\\\]/analysis)",
+      "Bash(node -e ' *)"
     ]
   }
 }

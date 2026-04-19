@@ -42,6 +42,8 @@ Next.js ──(REST/HTTPS)──→ Spring Boot ──(gRPC)──→ Python RAG
 | RAG Service | Python + FastAPI | 3.11+ |
 | Frontend | Next.js + TypeScript + Tailwind | 15.x |
 | Database | PostgreSQL + pgvector | 16 |
+| PDF Export | openhtmltopdf-pdfbox | 1.0.10 |
+| DOCX Export | Apache POI OOXML | 5.3.0 |
 | Cache | Redis | 7 |
 | Object Storage | MinIO | latest |
 | Message Queue | Kafka (KRaft mode) | latest |
@@ -108,7 +110,11 @@ dhara/
 │   │   ├── search/                        # SearchController, SearchService (gRPC to RAG)
 │   │   ├── legal/                         # StatuteController, JudgmentController, SroController
 │   │   ├── subscription/                  # PlanController, PaymentController, SslCommerzWebhook
-│   │   ├── entity/                        # JPA entities: Statute, Section, Judgment, User, etc.
+│   │   ├── document/                      # DocumentController, DocumentService — user document CRUD + export
+│   │   ├── template/                      # TemplateController, TemplateService — document templates
+│   │   ├── clause/                        # ClauseController, ClauseService — legal clause library
+│   │   ├── analysis/                      # AnalysisController, AnalysisService — upload/query/verify
+│   │   ├── entity/                        # JPA entities: Statute, Section, Judgment, User, UserDocument, DocumentTemplate, LegalClause, AnalysisSession
 │   │   ├── repository/                    # Spring Data JPA repositories
 │   │   ├── ratelimit/                     # RedisRateLimiter
 │   │   ├── grpc/                          # gRPC client stubs for RAG service
@@ -117,7 +123,7 @@ dhara/
 │   │   ├── application.yml
 │   │   ├── application-dev.yml
 │   │   ├── application-prod.yml
-│   │   └── db/migration/                  # Flyway V1__, V2__, ...
+│   │   └── db/migration/                  # Flyway V1__..V7__ (existing) + V8__create_document_management + V9__seed_templates_and_clauses
 │   ├── src/test/
 │   └── Dockerfile
 │
@@ -206,6 +212,13 @@ dhara/
 │   │   ├── judgments/
 │   │   │   ├── page.tsx                   # Browse judgments
 │   │   │   └── [id]/page.tsx              # Single judgment viewer
+│   │   ├── documents/
+│   │   │   ├── page.tsx                   # ★ Document management dashboard (auth required)
+│   │   │   └── [id]/page.tsx              # Rich text document editor with auto-save
+│   │   ├── templates/
+│   │   │   └── page.tsx                   # ★ Legal document templates browser (50+)
+│   │   ├── analysis/
+│   │   │   └── page.tsx                   # ★ 3-tab: Upload & Analyze | Verify | BD Legal Library
 │   │   └── pricing/page.tsx               # Subscription plans
 │   ├── components/
 │   │   ├── search/                        # SearchBar, ResultCard, FilterPanel
