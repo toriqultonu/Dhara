@@ -16,6 +16,15 @@ const config: Config = {
         sans: ["Inter", "Noto Sans Bengali", "sans-serif"],
         bengali: ["Noto Sans Bengali", "sans-serif"],
       },
+      boxShadow: {
+        card: "0 1px 4px rgba(0,0,0,0.04)",
+        "card-hover": "0 4px 20px rgba(30,58,95,0.10)",
+        "search": "0 8px 40px rgba(0,0,0,0.25)",
+      },
+      borderRadius: {
+        xl: "12px",
+        "2xl": "14px",
+      },
     },
   },
   plugins: [],

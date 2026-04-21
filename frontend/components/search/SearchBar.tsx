@@ -5,11 +5,13 @@ import { useTranslations } from "next-intl";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
+  defaultValue?: string;
+  size?: "default" | "large";
 }
 
-export default function SearchBar({ onSearch }: SearchBarProps) {
+export default function SearchBar({ onSearch, defaultValue = "", size = "default" }: SearchBarProps) {
   const t = useTranslations("search");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(defaultValue);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -20,21 +22,24 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="relative w-full max-w-2xl mx-auto">
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder={t("placeholder")}
-        dir="auto"
-        className="w-full px-4 py-3 pl-12 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-      />
-      <svg
-        className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted"
-        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-      </svg>
+    <form onSubmit={handleSubmit} className="w-full">
+      <div className={`flex items-center bg-gray-50 border-[1.5px] border-gray-200 rounded-xl overflow-hidden transition-all focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/10 focus-within:bg-white ${size === "large" ? "shadow-search" : ""}`}>
+        <span className="pl-4 text-muted text-[16px] shrink-0">🔍</span>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("placeholder")}
+          dir="auto"
+          className={`flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted ${size === "large" ? "px-4 py-4 text-[16px]" : "px-4 py-3 text-[15px]"}`}
+        />
+        <button
+          type="submit"
+          className="bg-primary hover:bg-primary-light text-white font-semibold text-[14px] px-5 h-full py-3 transition-colors shrink-0"
+        >
+          {t("startSearching")}
+        </button>
+      </div>
     </form>
   );
 }
