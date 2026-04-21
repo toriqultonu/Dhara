@@ -39,7 +39,21 @@
     "subtitle": "বাংলাদেশের আইন সম্পর্কে প্রশ্ন করুন",
     "thinking": "চিন্তা করছে...",
     "citations": "সূত্র",
-    "disclaimer": "AI উত্তরে ত্রুটি থাকতে পারে। সর্বদা সরকারি সূত্র থেকে যাচাই করুন।"
+    "disclaimer": "AI উত্তরে ত্রুটি থাকতে পারে। সর্বদা সরকারি সূত্র থেকে যাচাই করুন।",
+    "modeRag": "সাধারণ চ্যাট",
+    "modeDocument": "নথি চ্যাট",
+    "uploadDocument": "নথি আপলোড",
+    "uploadHint": "PDF, DOCX বা TXT — সর্বোচ্চ ১০ MB",
+    "dropOrClick": "ফাইল ড্রপ করুন বা ব্রাউজ করুন",
+    "uploading": "আপলোড হচ্ছে...",
+    "uploadError": "আপলোড ব্যর্থ। আবার চেষ্টা করুন।",
+    "documentReady": "নথি প্রস্তুত",
+    "changeDocument": "নথি পরিবর্তন করুন",
+    "selectLawSection": "আইনের ধারা নির্বাচন করুন",
+    "allLaws": "— সব আইন (RAG) —",
+    "lawSectionHint": "চ্যাট নির্বাচিত আইনের মধ্যে সীমাবদ্ধ থাকবে",
+    "documentChatPlaceholder": "আপলোড করা নথি সম্পর্কে জিজ্ঞাসা করুন...",
+    "statuteChatPlaceholder": "নির্বাচিত আইনের ধারা সম্পর্কে জিজ্ঞাসা করুন..."
   },
   "features": {
     "title": "কেন ধারা?",

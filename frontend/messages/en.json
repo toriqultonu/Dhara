@@ -39,7 +39,21 @@
     "subtitle": "Ask questions about Bangladeshi law",
     "thinking": "Thinking...",
     "citations": "Sources",
-    "disclaimer": "AI responses may contain errors. Always verify with official sources."
+    "disclaimer": "AI responses may contain errors. Always verify with official sources.",
+    "modeRag": "General Chat",
+    "modeDocument": "Document Chat",
+    "uploadDocument": "Upload Document",
+    "uploadHint": "PDF, DOCX or TXT — max 10 MB",
+    "dropOrClick": "Drop file or click to browse",
+    "uploading": "Uploading...",
+    "uploadError": "Upload failed. Please try again.",
+    "documentReady": "Document ready",
+    "changeDocument": "Change document",
+    "selectLawSection": "Select Law Section",
+    "allLaws": "— All laws (RAG) —",
+    "lawSectionHint": "Chat will be scoped to the selected law",
+    "documentChatPlaceholder": "Ask about the uploaded document...",
+    "statuteChatPlaceholder": "Ask about the selected law section..."
   },
   "features": {
     "title": "Why Dhara?",

@@ -23,12 +23,34 @@ class RAGPipeline:
         self._llm_router = llm_router
         self._search = search_service
 
+    async def ask_with_document_context(
+        self, question: str, document_text: str,
+        language: str = "bn", user_tier: str = "FREE",
+    ) -> RAGResponse:
+        """Chat against a user-uploaded document — no vector search, text injected directly."""
+        context = document_text[:8000] if len(document_text) > 8000 else document_text
+        complexity = self._classify_complexity(question, context)
+        prompt = build_legal_qa_prompt(question, context, language)
+
+        llm_response = await self._llm_router.generate(
+            prompt=prompt, system_prompt=DHARA_SYSTEM_PROMPT,
+            complexity=complexity, user_tier=user_tier,
+        )
+        return RAGResponse(
+            answer=llm_response.text, citations=[],
+            llm_provider=llm_response.provider, llm_model=llm_response.model,
+            tokens_used=llm_response.input_tokens + llm_response.output_tokens,
+            cost_usd=llm_response.cost_usd,
+        )
+
     async def ask(
         self, question: str, language: str = "bn",
         user_tier: str = "FREE", top_k: int = 5,
+        statute_id: int | None = None,
     ) -> RAGResponse:
         raw_results = await self._search.hybrid_search(
             query_text=question, language=language, top_k=top_k * 4,
+            statute_id=statute_id,
         )
 
         if raw_results:

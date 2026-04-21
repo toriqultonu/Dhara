@@ -141,6 +141,21 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
+export type ChatMode = "rag" | "document" | "statute";
+
+export interface LawSection {
+  id: number;
+  name: string;
+  nameEn: string;
+  year: number;
+}
+
+export interface UploadedDocument {
+  sessionId: string;
+  fileName: string;
+  wordCount: number;
+}
+
 // ─── Document Management ───────────────────────────────────────────────────
 
 export type DocumentCategory = "contract" | "employment" | "nda" | "real-estate" | "business" | "personal" | "other";

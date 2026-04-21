@@ -7,6 +7,9 @@ class AskRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000)
     language: str = Field(default="bn", pattern="^(bn|en)$")
     user_tier: str = Field(default="FREE")
+    mode: str = Field(default="rag", pattern="^(rag|document|statute)$")
+    document_text: str | None = Field(default=None, max_length=50000)
+    statute_id: int | None = Field(default=None, gt=0)
 
 
 class Citation(BaseModel):

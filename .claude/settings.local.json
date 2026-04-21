@@ -27,7 +27,8 @@
       "Bash(mkdir -p /home/technonext/Dhara/frontend/app/\\\\[locale\\\\]/documents/\\\\[id\\\\])",
       "Bash(mkdir -p /home/technonext/Dhara/frontend/app/\\\\[locale\\\\]/templates)",
       "Bash(mkdir -p /home/technonext/Dhara/frontend/app/\\\\[locale\\\\]/analysis)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(./gradlew compileJava)"
     ]
   }
 }

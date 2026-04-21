@@ -19,6 +19,7 @@ class SearchService:
     async def hybrid_search(
         self, query_text: str, language: str = "bn",
         top_k: int = 10, filters: list[str] | None = None,
+        statute_id: int | None = None,
     ) -> list[SearchResult]:
         query_embedding = await self._embedder.embed_query(query_text)
         embedding_str = "[" + ",".join(str(v) for v in query_embedding.dense_embedding) + "]"
@@ -27,6 +28,8 @@ class SearchService:
         if filters:
             types = ",".join(f"'{f.rstrip('s')}'" for f in filters)
             filter_clause = f"AND dc.source_type IN ({types})"
+        if statute_id is not None:
+            filter_clause += f" AND dc.source_type = 'statute' AND dc.source_id = {int(statute_id)}"
 
         sql = text(f"""
             WITH vector_results AS (

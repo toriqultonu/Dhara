@@ -43,6 +43,9 @@ dhara:
     rag-service-host: ${RAG_SERVICE_HOST:localhost}
     rag-service-port: ${RAG_SERVICE_PORT:50051}
 
+  rag:
+    http-url: ${RAG_HTTP_URL:http://localhost:8000}
+
   cors:
     allowed-origin: ${CORS_ORIGIN:http://localhost:3000}
 
