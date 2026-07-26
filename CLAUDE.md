@@ -449,6 +449,16 @@ claude
 # 6. Commit
 ```
 
+## 🧩 Frontend Workspace Pages (built 2026-07-26)
+
+New client pages under `frontend/app/[locale]/`: `documents/` (auth dashboard: stats, filters, duplicate/share/delete, create→editor), `documents/[id]/` (editor with 2s-debounced auto-save via PUT, tags chip input, PDF/DOCX/TXT export via `api.postForBlob`, share modal), `templates/` (public browser; categories seeded in V9: employment/contract/nda/real-estate/business/personal; "Use template" → POST /api/documents with `templateId`), `analysis/` (3 tabs: upload+Q&A, verify, static BD legal library linking `/statutes/1..7` per V7 seed order), `profile/` (user card + GET /api/my-subscription + logout). Notes:
+- `lib/api.ts` now has `postForBlob()` for file exports.
+- Backend document status/category values are **lowercase** (`draft`/`completed`/`shared`; `real-estate` maps to i18n key `realEstate`).
+- Analysis query request field is `query` (not `question`): `{sessionId, query, language}`.
+- Auth-page pattern: `useEffect` redirect to `/login` when `!initializing && !isAuthenticated`.
+- i18n: `documents`/`templates`/`analysis`/`profile` namespaces fully keyed in both `messages/en.json` and `messages/bn.json`; `common.close` added.
+- Header/Sidebar nav now includes Templates + Analysis (always) and Documents (auth only); user name links to `/profile`.
+
 ### Prompt Tips for Claude Code
 
 - Always reference this CLAUDE.md: "Follow the CLAUDE.md conventions"

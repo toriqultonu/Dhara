@@ -1,23 +1,56 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import Badge from "@/components/ui/Badge";
-import type { PagedResponse, JudgmentListResponse } from "@/lib/types";
+import Pagination from "@/components/ui/Pagination";
+import ListFilterBar from "@/components/legal/ListFilterBar";
+import type { ApiResponse, JudgmentListResponse, PagedResponse } from "@/lib/types";
 
+const PAGE_SIZE = 20;
+
+// NOTE: the backend list endpoint only supports page/size (no q/court),
+// so we fetch a large page once and filter server-side in this component.
 async function fetchJudgments(): Promise<JudgmentListResponse[]> {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/judgments?page=0&size=50`,
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/judgments?page=0&size=500`,
       { next: { revalidate: 60 } }
     );
     if (!res.ok) return [];
-    const json: { success: boolean; data: PagedResponse<JudgmentListResponse> } = await res.json();
+    const json: ApiResponse<PagedResponse<JudgmentListResponse>> = await res.json();
     return json.success ? json.data.items : [];
   } catch {
     return [];
   }
 }
 
-export default async function JudgmentsPage() {
-  const judgments = await fetchJudgments();
+export default async function JudgmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; court?: string; page?: string }>;
+}) {
+  const { q = "", court = "", page: pageParam } = await searchParams;
+  const t = await getTranslations("judgments");
+
+  const all = await fetchJudgments();
+
+  const query = q.trim().toLowerCase();
+  const filtered = all.filter((j) => {
+    if (court && j.court !== court) return false;
+    if (!query) return true;
+    return (
+      j.caseName.toLowerCase().includes(query) ||
+      (j.citation ?? "").toLowerCase().includes(query)
+    );
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const page = Math.min(Math.max(1, Number(pageParam) || 1), totalPages);
+  const items = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const courtPills = [
+    { value: "Appellate Division", label: t("appellateDivision") },
+    { value: "High Court Division", label: t("highCourtDivision") },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -25,45 +58,30 @@ export default async function JudgmentsPage() {
       <div className="bg-white border-b border-gray-200 px-6 py-7">
         <div className="max-w-[1100px] mx-auto">
           <h1 className="text-[28px] font-extrabold text-foreground tracking-tight mb-1">
-            Court Judgments
+            {t("title")}
           </h1>
           <p className="text-[14px] text-muted mb-5">
-            Browse {judgments.length} judgments from Bangladesh courts
+            {t("subtitle", { count: filtered.length })}
           </p>
 
-          <div className="flex gap-3 items-center">
-            <div className="flex-1 max-w-[480px] flex items-center bg-gray-50 border-[1.5px] border-gray-200 rounded-lg overflow-hidden focus-within:border-primary focus-within:bg-white transition-all">
-              <span className="pl-3 text-muted">🔍</span>
-              <input
-                placeholder="Search case name, citation…"
-                className="flex-1 px-3 py-2.5 text-[14px] bg-transparent border-none outline-none text-foreground placeholder:text-muted"
-              />
-            </div>
-            {["All Courts", "Appellate Division", "High Court Division"].map((c, i) => (
-              <span
-                key={c}
-                className={`px-3.5 py-1.5 rounded-full border-[1.5px] text-[12px] font-semibold cursor-pointer transition-all ${
-                  i === 0
-                    ? "border-primary bg-primary text-white"
-                    : "border-gray-200 bg-white text-muted hover:border-primary hover:text-primary"
-                }`}
-              >
-                {c}
-              </span>
-            ))}
-          </div>
+          <ListFilterBar
+            searchPlaceholder={t("searchPlaceholder")}
+            pillParam="court"
+            pills={courtPills}
+            allLabel={t("allCourts")}
+          />
         </div>
       </div>
 
       {/* List */}
       <div className="max-w-[1100px] mx-auto px-6 py-6">
-        {judgments.length === 0 ? (
+        {items.length === 0 ? (
           <div className="text-center py-16 text-muted">
-            <p className="text-[16px]">No judgments found. Make sure the backend is running.</p>
+            <p className="text-[16px]">{t("empty")}</p>
           </div>
         ) : (
           <div className="space-y-2.5">
-            {judgments.map((j) => (
+            {items.map((j) => (
               <Link
                 key={j.id}
                 href={`/judgments/${j.id}`}
@@ -79,7 +97,7 @@ export default async function JudgmentsPage() {
                       {j.status}
                     </Badge>
                   </div>
-                  <h2 className="text-[15px] font-semibold text-foreground group-hover:text-primary mb-1 transition-colors">
+                  <h2 dir="auto" className="text-[15px] font-semibold text-foreground group-hover:text-primary mb-1 transition-colors">
                     {j.caseName}
                   </h2>
                   <div className="flex gap-4 text-[12px] text-muted">
@@ -92,6 +110,8 @@ export default async function JudgmentsPage() {
             ))}
           </div>
         )}
+
+        <Pagination page={page} totalPages={totalPages} />
       </div>
     </div>
   );

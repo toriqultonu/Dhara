@@ -3,22 +3,34 @@
 import { createContext, useContext } from "react";
 import type { UserResponse } from "./types";
 
-interface AuthContextType {
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  barCouncilId?: string;
+}
+
+export interface AuthContextType {
   user: UserResponse | null;
   token: string | null;
-  login: (token: string, user: UserResponse) => void;
-  logout: () => void;
   isAuthenticated: boolean;
+  /** True while the provider restores the session from localStorage on mount. */
+  initializing: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,
-  login: () => {},
-  logout: () => {},
   isAuthenticated: false,
+  initializing: true,
+  login: async () => {},
+  register: async () => {},
+  logout: () => {},
 });
 
-export function useAuth() {
+export function useAuth(): AuthContextType {
   return useContext(AuthContext);
 }

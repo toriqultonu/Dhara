@@ -35,6 +35,9 @@ public class SubscriptionPlan extends AuditableEntity {
     @Column(columnDefinition = "TEXT")
     private String features;
 
+    @Column(name = "duration_days", nullable = false)
+    private Integer durationDays = 30;
+
     @Column(length = 20)
     private String status = "ACTIVE";
 }

@@ -1,62 +1,127 @@
 package com.dhara.grpc;
 
-import com.dhara.search.dto.AskRequest;
-import com.dhara.search.dto.SearchRequest;
-import com.dhara.search.dto.SearchResponse;
+import com.dhara.grpc.RagRestClient.RagAskPayload;
+import com.dhara.grpc.RagRestClient.RagAskResponse;
+import com.dhara.grpc.RagRestClient.RagCitation;
+import com.dhara.grpc.RagRestClient.RagSearchPayload;
+import com.dhara.grpc.RagRestClient.RagSearchResponse;
+import com.dhara.grpc.RagRestClient.RagSearchResult;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
- * gRPC client for communicating with the Python RAG service.
- * In production, this uses generated protobuf stubs.
- * Currently provides a structured interface for when gRPC stubs are generated.
+ * gRPC client for the Python RAG service, backed by the generated protobuf
+ * stubs from {@code src/main/proto/rag_service.proto}.
+ * Active when {@code dhara.rag.transport=grpc}.
+ *
+ * <p>Channel and blocking stub come from {@link com.dhara.config.GrpcConfig},
+ * configured via {@code dhara.grpc.rag-service-host} / {@code dhara.grpc.rag-service-port}.
+ * On transport failure the client degrades gracefully (same behavior as
+ * {@link RagRestClient}) instead of propagating {@link StatusRuntimeException}.
  */
 @Component
-public class RagServiceClient {
+@ConditionalOnProperty(prefix = "dhara.rag", name = "transport", havingValue = "grpc")
+public class RagServiceClient implements RagClient {
 
     private static final Logger log = LoggerFactory.getLogger(RagServiceClient.class);
+
     private final ManagedChannel channel;
+    private final RagServiceGrpc.RagServiceBlockingStub stub;
+    private final long deadlineSeconds;
 
-    public RagServiceClient(ManagedChannel ragServiceChannel) {
+    public RagServiceClient(
+            ManagedChannel ragServiceChannel,
+            RagServiceGrpc.RagServiceBlockingStub ragServiceBlockingStub,
+            @Value("${dhara.grpc.deadline-seconds:60}") long deadlineSeconds) {
         this.channel = ragServiceChannel;
+        this.stub = ragServiceBlockingStub;
+        this.deadlineSeconds = deadlineSeconds;
     }
 
-    public SearchResponse search(SearchRequest request, String userId, String userTier) {
-        log.info("Sending search request to RAG service: query={}, userId={}", request.query(), userId);
+    @Override
+    public RagSearchResponse search(RagSearchPayload payload) {
+        log.info("gRPC search to RAG service: query={}, topK={}", payload.query(), payload.top_k());
 
-        // TODO: Replace with generated gRPC stub call
-        // RagServiceGrpc.RagServiceBlockingStub stub = RagServiceGrpc.newBlockingStub(channel);
-        // var grpcRequest = com.dhara.grpc.SearchRequest.newBuilder()
-        //     .setQuery(request.query())
-        //     .setLimit(request.limit() != null ? request.limit() : 20)
-        //     .setLanguage(request.language() != null ? request.language() : "bn")
-        //     .setUserId(userId)
-        //     .setUserTier(userTier)
-        //     .build();
-        // var grpcResponse = stub.search(grpcRequest);
+        com.dhara.grpc.SearchRequest grpcRequest = com.dhara.grpc.SearchRequest.newBuilder()
+                .setQuery(payload.query())
+                .setLanguage(payload.language() != null ? payload.language() : "bn")
+                .setTopK(payload.top_k())
+                .addAllFilters(payload.filters() != null ? payload.filters() : List.of())
+                .build();
 
-        // Placeholder response until gRPC stubs are generated
-        return new SearchResponse(List.of(), "", 0f);
+        try {
+            com.dhara.grpc.SearchResponse grpcResponse = stub
+                    .withDeadlineAfter(deadlineSeconds, TimeUnit.SECONDS)
+                    .search(grpcRequest);
+
+            List<RagSearchResult> results = grpcResponse.getResultsList().stream()
+                    .map(r -> new RagSearchResult(
+                            r.getSourceType(),
+                            r.getSourceId(),
+                            r.getTitle(),
+                            r.getSnippet(),
+                            r.getScore(),
+                            r.getMetadataMap()))
+                    .toList();
+
+            return new RagSearchResponse(results, grpcResponse.getSearchTimeMs());
+        } catch (StatusRuntimeException e) {
+            log.error("gRPC search failed: status={}, message={}", e.getStatus(), e.getMessage());
+            return new RagSearchResponse(List.of(), 0.0);
+        }
     }
 
-    public RagAskResponse ask(AskRequest request, String userId, String userTier) {
-        log.info("Sending ask request to RAG service: question={}, userId={}", request.question(), userId);
+    @Override
+    public RagAskResponse ask(RagAskPayload payload) {
+        log.info("gRPC ask to RAG service: mode={}, question={}", payload.mode(), payload.question());
 
-        // TODO: Replace with generated gRPC stub call
-        // Placeholder response
-        return new RagAskResponse(
-                "RAG service not yet connected. Please configure gRPC stubs.",
-                List.of(),
-                "none",
-                0.0f,
-                request.language() != null ? request.language() : "bn"
-        );
+        com.dhara.grpc.AskRequest.Builder builder = com.dhara.grpc.AskRequest.newBuilder()
+                .setQuestion(payload.question())
+                .setLanguage(payload.language() != null ? payload.language() : "bn")
+                .setUserTier(payload.user_tier() != null ? payload.user_tier() : "FREE")
+                .setMode(payload.mode() != null ? payload.mode() : "rag");
+        if (payload.document_text() != null) {
+            builder.setDocumentText(payload.document_text());
+        }
+        if (payload.statute_id() != null) {
+            builder.setStatuteId(payload.statute_id());
+        }
+
+        try {
+            com.dhara.grpc.AskResponse grpcResponse = stub
+                    .withDeadlineAfter(deadlineSeconds, TimeUnit.SECONDS)
+                    .ask(builder.build());
+
+            List<RagCitation> citations = grpcResponse.getCitationsList().stream()
+                    .map(c -> new RagCitation(
+                            c.getSourceType(),
+                            c.getSourceId(),
+                            c.getTitle(),
+                            c.getSectionNumber(),
+                            c.getSnippet()))
+                    .toList();
+
+            return new RagAskResponse(
+                    grpcResponse.getAnswer(),
+                    citations,
+                    grpcResponse.getLlmProvider(),
+                    grpcResponse.getLlmModel(),
+                    grpcResponse.getTokensUsed(),
+                    grpcResponse.getCostUsd());
+        } catch (StatusRuntimeException e) {
+            log.error("gRPC ask failed: status={}, message={}", e.getStatus(), e.getMessage());
+            return new RagAskResponse(
+                    "RAG service unavailable. Please ensure the RAG service is running.",
+                    List.of(), "none", "none", 0, 0.0);
+        }
     }
 
     public boolean isHealthy() {
@@ -67,21 +132,4 @@ public class RagServiceClient {
             return false;
         }
     }
-
-    public record RagAskResponse(
-            String answer,
-            List<RagCitation> citations,
-            String modelUsed,
-            float latencyMs,
-            String language
-    ) {}
-
-    public record RagCitation(
-            String docId,
-            String docType,
-            String title,
-            String reference,
-            String snippet,
-            float relevanceScore
-    ) {}
 }

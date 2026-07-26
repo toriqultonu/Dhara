@@ -1,14 +1,21 @@
 """Hybrid search service — vector similarity + BM25 full-text search."""
 
 import logging
+from typing import Any
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 from app.providers.base import EmbeddingProvider
 from app.models.search import SearchResult
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Only these source types may ever appear in a filter. Anything else is
+# ignored — and even valid values are bound as parameters, never
+# interpolated into SQL.
+ALLOWED_SOURCE_TYPES: frozenset[str] = frozenset({"statute", "judgment", "sro"})
 
 
 class SearchService:
@@ -24,12 +31,35 @@ class SearchService:
         query_embedding = await self._embedder.embed_query(query_text)
         embedding_str = "[" + ",".join(str(v) for v in query_embedding.dense_embedding) + "]"
 
+        params: dict[str, Any] = {
+            "embedding": embedding_str, "query": query_text,
+            "limit": top_k * 3, "top_k": top_k,
+            "vector_weight": settings.search_vector_weight,
+            "bm25_weight": settings.search_bm25_weight,
+        }
+
         filter_clause = ""
-        if filters:
-            types = ",".join(f"'{f.rstrip('s')}'" for f in filters)
-            filter_clause = f"AND dc.source_type IN ({types})"
         if statute_id is not None:
-            filter_clause += f" AND dc.source_type = 'statute' AND dc.source_id = {int(statute_id)}"
+            # Rule: statute_id implies a statute-only search. Any user-supplied
+            # source-type filters are IGNORED (not ANDed on top), because
+            # combining them can produce contradictory conditions (e.g.
+            # filters=["judgments"] + statute_id) that silently return nothing.
+            if filters:
+                logger.debug(
+                    "statute_id=%s provided; ignoring source-type filters %s",
+                    statute_id, filters,
+                )
+            filter_clause = "AND dc.source_type = 'statute' AND dc.source_id = :statute_id"
+            params["statute_id"] = int(statute_id)
+        elif filters:
+            normalized = [f.rstrip("s").lower() for f in filters]
+            source_types = [t for t in normalized if t in ALLOWED_SOURCE_TYPES]
+            invalid = [f for f, t in zip(filters, normalized) if t not in ALLOWED_SOURCE_TYPES]
+            if invalid:
+                logger.warning("Ignoring invalid source-type filters: %s", invalid)
+            if source_types:
+                filter_clause = "AND dc.source_type IN :source_types"
+                params["source_types"] = source_types
 
         sql = text(f"""
             WITH vector_results AS (
@@ -60,14 +90,11 @@ class SearchService:
             ORDER BY combined_score DESC
             LIMIT :top_k
         """)
+        if "source_types" in params:
+            sql = sql.bindparams(bindparam("source_types", expanding=True))
 
         async with AsyncSession(self._engine) as session:
-            result = await session.execute(sql, {
-                "embedding": embedding_str, "query": query_text,
-                "limit": top_k * 3, "top_k": top_k,
-                "vector_weight": settings.search_vector_weight,
-                "bm25_weight": settings.search_bm25_weight,
-            })
+            result = await session.execute(sql, params)
             rows = result.fetchall()
 
         return [

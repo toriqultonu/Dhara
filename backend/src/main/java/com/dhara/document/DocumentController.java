@@ -43,7 +43,7 @@ public class DocumentController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<DocumentResponse>> createDocument(
-            Authentication auth, @Valid @RequestBody DocumentRequest request) {
+            Authentication auth, @Valid @RequestBody CreateDocumentRequest request) {
 
         Long userId = Long.parseLong(auth.getName());
         return ResponseEntity.status(201)
@@ -60,7 +60,7 @@ public class DocumentController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<DocumentResponse>> updateDocument(
-            Authentication auth, @PathVariable Long id, @RequestBody DocumentRequest request) {
+            Authentication auth, @PathVariable Long id, @Valid @RequestBody UpdateDocumentRequest request) {
 
         Long userId = Long.parseLong(auth.getName());
         return ResponseEntity.ok(ApiResponse.ok(documentService.updateDocument(userId, id, request)));

@@ -15,7 +15,7 @@ from typing import AsyncGenerator
 
 import asyncpg
 
-from app.config import get_settings
+from app.config import settings
 from app.providers.embedding.factory import create_embedding_provider
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -70,15 +70,10 @@ async def store_embeddings(
 
 
 async def main() -> None:
-    settings = get_settings()
     db_url = settings.database_url.replace("+asyncpg", "")
     pool = await asyncpg.create_pool(db_url)
 
-    embedding_provider = create_embedding_provider(
-        provider_type=settings.embedding_provider,
-        model=settings.embedding_model,
-        base_url=settings.ollama_base_url,
-    )
+    embedding_provider = create_embedding_provider(settings.embedding_provider)
 
     document_sources = [
         ("statute", "statutes", "full_text"),
@@ -94,8 +89,9 @@ async def main() -> None:
         count = 0
         async for batch in fetch_documents(pool, doc_type, table, text_col):
             texts = [doc["text"][:2000] for doc in batch]
-            result = await embedding_provider.embed(texts)
-            await store_embeddings(pool, doc_type, batch, result.embeddings)
+            results = await embedding_provider.embed_texts(texts, batch_size=BATCH_SIZE)
+            embeddings = [r.dense_embedding for r in results]
+            await store_embeddings(pool, doc_type, batch, embeddings)
             count += len(batch)
             logger.info("  Embedded %d %s documents so far", count, doc_type)
         total_embedded += count

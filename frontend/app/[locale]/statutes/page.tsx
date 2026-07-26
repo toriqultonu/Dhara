@@ -1,15 +1,22 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import Badge from "@/components/ui/Badge";
-import type { PagedResponse, StatuteListResponse } from "@/lib/types";
+import Pagination from "@/components/ui/Pagination";
+import ListFilterBar from "@/components/legal/ListFilterBar";
+import type { ApiResponse, PagedResponse, StatuteListResponse } from "@/lib/types";
 
+const PAGE_SIZE = 20;
+
+// NOTE: the backend list endpoint only supports page/size (no q/category),
+// so we fetch a large page once and filter server-side in this component.
 async function fetchStatutes(): Promise<StatuteListResponse[]> {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/statutes?page=0&size=50`,
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/statutes?page=0&size=500`,
       { next: { revalidate: 60 } }
     );
     if (!res.ok) return [];
-    const json: { success: boolean; data: PagedResponse<StatuteListResponse> } = await res.json();
+    const json: ApiResponse<PagedResponse<StatuteListResponse>> = await res.json();
     return json.success ? json.data.items : [];
   } catch {
     return [];
@@ -17,19 +24,49 @@ async function fetchStatutes(): Promise<StatuteListResponse[]> {
 }
 
 const CATEGORY_BADGE: Record<string, "criminal" | "civil" | "family" | "commercial" | "default"> = {
-  "Criminal Law":      "criminal",
-  "Civil Law":         "civil",
-  "Civil Procedure":   "civil",
-  "Evidence Law":      "default",
-  "Family Law":        "family",
-  "Commercial Law":    "commercial",
-  "Criminal Procedure":"criminal",
+  "Criminal Law":       "criminal",
+  "Criminal Procedure": "criminal",
+  "Civil Law":          "civil",
+  "Civil Procedure":    "civil",
+  "Evidence Law":       "default",
+  "Family Law":         "family",
+  "Commercial Law":     "commercial",
 };
 
-const CATEGORIES = ["All", "Criminal Law", "Civil Law", "Civil Procedure", "Family Law", "Commercial Law", "Evidence Law"];
+export default async function StatutesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; category?: string; page?: string }>;
+}) {
+  const { q = "", category = "", page: pageParam } = await searchParams;
+  const t = await getTranslations("statutes");
+  const tl = await getTranslations("legal");
 
-export default async function StatutesPage() {
-  const statutes = await fetchStatutes();
+  const all = await fetchStatutes();
+
+  const query = q.trim().toLowerCase();
+  const filtered = all.filter((s) => {
+    if (category && s.category !== category) return false;
+    if (!query) return true;
+    return (
+      s.titleEn.toLowerCase().includes(query) ||
+      (s.titleBn ?? "").toLowerCase().includes(query) ||
+      (s.actNumber ?? "").toLowerCase().includes(query)
+    );
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const page = Math.min(Math.max(1, Number(pageParam) || 1), totalPages);
+  const items = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const categoryPills = [
+    { value: "Criminal Law",   label: t("categories.criminal") },
+    { value: "Civil Law",      label: t("categories.civil") },
+    { value: "Civil Procedure",label: t("categories.civilProcedure") },
+    { value: "Family Law",     label: t("categories.family") },
+    { value: "Commercial Law", label: t("categories.commercial") },
+    { value: "Evidence Law",   label: t("categories.evidence") },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -37,44 +74,30 @@ export default async function StatutesPage() {
       <div className="bg-white border-b border-gray-200 px-6 py-7">
         <div className="max-w-[1100px] mx-auto">
           <h1 className="text-[28px] font-extrabold text-foreground tracking-tight mb-1">
-            Acts &amp; Statutes
+            {t("title")}
           </h1>
           <p className="text-[14px] text-muted mb-5">
-            Browse {statutes.length} acts — full text with section-by-section navigation
+            {t("subtitle", { count: filtered.length })}
           </p>
 
-          {/* Search + category filters */}
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="flex-1 min-w-[260px] flex items-center bg-gray-50 border-[1.5px] border-gray-200 rounded-lg overflow-hidden focus-within:border-primary focus-within:bg-white transition-all">
-              <span className="pl-3 text-muted">🔍</span>
-              <input
-                placeholder="Search acts by name, number…"
-                className="flex-1 px-3 py-2.5 text-[14px] bg-transparent border-none outline-none text-foreground placeholder:text-muted"
-              />
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {CATEGORIES.map((c) => (
-                <span
-                  key={c}
-                  className="px-3.5 py-1.5 rounded-full border-[1.5px] border-gray-200 bg-white text-muted text-[12px] font-semibold cursor-pointer hover:border-primary hover:text-primary transition-all first:border-primary first:bg-primary first:text-white"
-                >
-                  {c}
-                </span>
-              ))}
-            </div>
-          </div>
+          <ListFilterBar
+            searchPlaceholder={t("searchPlaceholder")}
+            pillParam="category"
+            pills={categoryPills}
+            allLabel={t("categories.all")}
+          />
         </div>
       </div>
 
       {/* List */}
       <div className="max-w-[1100px] mx-auto px-6 py-6">
-        {statutes.length === 0 ? (
+        {items.length === 0 ? (
           <div className="text-center py-16 text-muted">
-            <p className="text-[16px]">No statutes found. Make sure the backend is running.</p>
+            <p className="text-[16px]">{t("empty")}</p>
           </div>
         ) : (
           <div className="space-y-2.5">
-            {statutes.map((statute) => (
+            {items.map((statute) => (
               <Link
                 key={statute.id}
                 href={`/statutes/${statute.id}`}
@@ -99,7 +122,7 @@ export default async function StatutesPage() {
                       </Badge>
                     )}
                     <Badge variant={statute.status === "ACTIVE" ? "active" : "repealed"}>
-                      {statute.status === "ACTIVE" ? "Active" : "Repealed"}
+                      {statute.status === "ACTIVE" ? tl("activeLaw") : tl("repealed")}
                     </Badge>
                   </div>
                   <h2 className="text-[15px] font-semibold text-foreground group-hover:text-primary truncate transition-colors">
@@ -115,6 +138,8 @@ export default async function StatutesPage() {
             ))}
           </div>
         )}
+
+        <Pagination page={page} totalPages={totalPages} />
       </div>
     </div>
   );

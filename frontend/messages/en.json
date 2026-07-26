@@ -8,7 +8,10 @@
     "powered": "Powered",
     "loading": "Loading...",
     "error": "An error occurred",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "previous": "Previous page",
+    "next": "Next page",
+    "close": "Close"
   },
   "nav": {
     "search": "Search",
@@ -22,7 +25,9 @@
     "login": "Login",
     "register": "Register",
     "profile": "Profile",
-    "logout": "Logout"
+    "logout": "Logout",
+    "menu": "Menu",
+    "closeMenu": "Close menu"
   },
   "search": {
     "placeholder": "Type your legal question...",
@@ -90,7 +95,17 @@
     "relatedCases": "Related Cases",
     "amendments": "Amendments",
     "sections": "Sections",
-    "browseSections": "Browse Sections"
+    "browseSections": "Browse Sections",
+    "actNumber": "Act Number",
+    "year": "Year",
+    "effectiveDate": "Effective Date",
+    "source": "Source",
+    "noSections": "No sections are available for this act yet.",
+    "citedReferences": "Cited References",
+    "citedStatutes": "Cited Statutes",
+    "citedJudgments": "Cited Judgments",
+    "noCitations": "No citation data available for this judgment yet.",
+    "noAmendments": "No amendment history available yet."
   },
   "auth": {
     "loginTitle": "Login to Dhara",
@@ -105,7 +120,18 @@
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
     "signUp": "Sign up",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "welcomeBack": "Welcome back",
+    "loginSubtitle": "Sign in to your Dhara account",
+    "forgotPassword": "Forgot password?",
+    "signingIn": "Signing in…",
+    "signUpFree": "Sign up free",
+    "registerSubtitle": "Free for 14 days, no credit card needed",
+    "namePlaceholder": "Md. Rafiqul Islam",
+    "passwordHint": "Min. 6 characters",
+    "creatingAccount": "Creating account…",
+    "createFreeAccount": "Create Free Account",
+    "termsNotice": "By signing up, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>."
   },
   "pricing": {
     "title": "Choose Your Plan",
@@ -114,35 +140,77 @@
       "name": "Free",
       "price": "৳0",
       "period": "forever",
-      "features": ["5 AI queries per day", "Basic search", "Browse statutes & judgments"]
+      "features": [
+        "5 AI queries per day",
+        "Basic search",
+        "Browse statutes & judgments"
+      ]
     },
     "student": {
       "name": "Student",
       "price": "৳299",
       "period": "per month",
-      "features": ["30 AI queries per day", "Advanced search", "Case summaries", "Citation mapping"]
+      "features": [
+        "30 AI queries per day",
+        "Advanced search",
+        "Case summaries",
+        "Citation mapping"
+      ]
     },
     "professional": {
       "name": "Professional",
       "price": "৳999",
       "period": "per month",
-      "features": ["Unlimited AI queries", "Premium LLM models", "Case comparison", "Priority support"]
+      "features": [
+        "Unlimited AI queries",
+        "Premium LLM models",
+        "Case comparison",
+        "Priority support"
+      ]
     },
     "firm": {
       "name": "Law Firm",
       "price": "৳4,999",
       "period": "per month",
-      "features": ["Unlimited everything", "Team management", "API access", "Dedicated support", "Custom integrations"]
+      "features": [
+        "Unlimited everything",
+        "Team management",
+        "API access",
+        "Dedicated support",
+        "Custom integrations"
+      ]
     },
     "subscribe": "Subscribe",
-    "currentPlan": "Current Plan"
+    "currentPlan": "Current Plan",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "save20": "Save 20%",
+    "billingToggle": "Toggle billing period",
+    "mostPopular": "Most Popular",
+    "billedAnnually": "Billed annually",
+    "freePlanActive": "The Free plan is already active on your account.",
+    "redirecting": "Redirecting…"
   },
   "profile": {
     "title": "My Profile",
     "subscription": "Subscription",
     "usage": "Usage",
     "queriesUsed": "Queries used today",
-    "memberSince": "Member since"
+    "memberSince": "Member since",
+    "accountInfo": "Account Information",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "barCouncilId": "Bar Council ID",
+    "plan": "Plan",
+    "status": "Status",
+    "startedOn": "Started on",
+    "expiresOn": "Expires on",
+    "noSubscription": "No active subscription — you are on the Free plan.",
+    "upgrade": "Upgrade Plan",
+    "usageNote": "Daily AI query limits depend on your plan: Free — 5/day, Student — 30/day, Professional and Law Firm — unlimited.",
+    "logout": "Logout",
+    "loadError": "Failed to load subscription"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -185,7 +253,42 @@
     "clauseLibrary": "Clause Library",
     "noClauses": "No clauses found",
     "smartFields": "Smart Fields",
-    "smartFieldsHint": "Click to insert a placeholder field"
+    "smartFieldsHint": "Click to insert a placeholder field",
+    "statusDraft": "Draft",
+    "statusCompleted": "Completed",
+    "statusShared": "Shared",
+    "categories": {
+      "contract": "Contract",
+      "employment": "Employment",
+      "nda": "NDA",
+      "realEstate": "Real Estate",
+      "business": "Business",
+      "personal": "Personal",
+      "other": "Other"
+    },
+    "created": "Document created",
+    "deleted": "Document deleted",
+    "duplicated": "Document duplicated",
+    "deleteTitle": "Delete Document",
+    "shareTitle": "Share Document",
+    "shareUrlLabel": "Share link",
+    "shareExpires": "Link expires on {date}",
+    "shareSuccess": "Share link created",
+    "copy": "Copy",
+    "copied": "Copied to clipboard",
+    "backToDocuments": "Back to documents",
+    "titlePlaceholder": "Document title",
+    "contentPlaceholder": "Start writing your legal document...",
+    "tags": "Tags",
+    "tagPlaceholder": "Add tag and press Enter",
+    "category": "Category",
+    "status": "Status",
+    "markCompleted": "Mark as completed",
+    "markDraft": "Mark as draft",
+    "saveError": "Failed to save changes",
+    "exportError": "Export failed. Please try again.",
+    "notFound": "Document not found",
+    "open": "Open"
   },
   "templates": {
     "title": "Legal Document Templates",
@@ -193,7 +296,22 @@
     "searchPlaceholder": "Search templates...",
     "noTemplates": "No templates found",
     "templatesFound": "templates",
-    "loading": "Loading templates..."
+    "loading": "Loading templates...",
+    "categories": {
+      "all": "All",
+      "employment": "Employment",
+      "contract": "Contract",
+      "nda": "NDA",
+      "realEstate": "Real Estate",
+      "business": "Business",
+      "personal": "Personal"
+    },
+    "useTemplate": "Use Template",
+    "creating": "Creating document...",
+    "preview": "Preview",
+    "popularityLabel": "{count} uses",
+    "loadError": "Failed to load template",
+    "createError": "Failed to create document from template"
   },
   "analysis": {
     "title": "Document Analysis",
@@ -229,6 +347,60 @@
     "issuesFound": "Issues Found",
     "warningsFound": "Warnings",
     "compliantClauses": "Compliant Clauses",
-    "viewInStatutes": "View in Statutes"
+    "viewInStatutes": "View in Statutes",
+    "pages": "pages",
+    "words": "words",
+    "confidence": "Confidence",
+    "references": "Legal References",
+    "suggestion": "Suggestion",
+    "applicableLaw": "Applicable law",
+    "documentTypes": {
+      "employment": "Employment Contract",
+      "rental": "Rental Agreement",
+      "business": "Business Agreement",
+      "nda": "Non-Disclosure Agreement",
+      "other": "Other"
+    },
+    "verifyButton": "Verify Compliance",
+    "verifyError": "Verification failed. Please try again.",
+    "usingUploaded": "Using uploaded document: {name}",
+    "loginPrompt": "Please login to analyze your documents",
+    "loginButton": "Login",
+    "noQuestions": "Ask your first question about the uploaded document",
+    "library": {
+      "browseAll": "Browse All Statutes",
+      "browseAllHint": "Full database with section-by-section navigation",
+      "penal": { "title": "The Penal Code, 1860", "hint": "Offences, punishments and general criminal law" },
+      "evidence": { "title": "The Evidence Act, 1872", "hint": "Rules of evidence, witnesses and proof" },
+      "contract": { "title": "The Contract Act, 1872", "hint": "Formation, performance and breach of contracts" },
+      "muslimFamily": { "title": "The Muslim Family Laws Ordinance, 1961", "hint": "Marriage, divorce and inheritance" },
+      "moneyLoan": { "title": "The Money Loan Court Act, 2003", "hint": "Recovery of loans by financial institutions" },
+      "cpc": { "title": "The Code of Civil Procedure, 1908", "hint": "Procedure of civil courts and suits" },
+      "crpc": { "title": "The Code of Criminal Procedure, 1898", "hint": "Procedure of criminal courts and trials" }
+    }
+  },
+  "statutes": {
+    "title": "Acts & Statutes",
+    "subtitle": "Browse {count} acts — full text with section-by-section navigation",
+    "searchPlaceholder": "Search acts by name, number…",
+    "empty": "No statutes found. Try a different search or make sure the backend is running.",
+    "categories": {
+      "all": "All",
+      "criminal": "Criminal Law",
+      "civil": "Civil Law",
+      "civilProcedure": "Civil Procedure",
+      "family": "Family Law",
+      "commercial": "Commercial Law",
+      "evidence": "Evidence Law"
+    }
+  },
+  "judgments": {
+    "title": "Court Judgments",
+    "subtitle": "Browse {count} judgments from Bangladesh courts",
+    "searchPlaceholder": "Search case name, citation…",
+    "allCourts": "All Courts",
+    "appellateDivision": "Appellate Division",
+    "highCourtDivision": "High Court Division",
+    "empty": "No judgments found. Try a different search or make sure the backend is running."
   }
 }

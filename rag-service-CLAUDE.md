@@ -1016,6 +1016,19 @@ Use `graphify-out/` at the project root as a fast lookup index before reading RA
 8. **API rate limits** — DeepSeek/Gemini have rate limits. Implement exponential backoff in providers.
 
 
+## 📊 Implementation Status (updated 2026-07-26, post-fix session)
+
+**All audited bugs fixed. `uv run pytest`: 53 passed.**
+
+- **gRPC server implemented:** `app/grpc_server.py` (grpc.aio `RagServiceServicer`, DI of the lifespan-built SearchService/RAGPipeline/EmbeddingProvider), started/stopped in `main.py` lifespan on `settings.grpc_port` (50051) — HTTP + gRPC share one process. Stubs in `app/generated/` (regen: `scripts/gen_proto.sh` — protoc then sed-fix the pb2 import to `from app.generated import ...`). Protos canonicalized byte-identical with backend copy; AskRequest has `mode`/`document_text`/`statute_id`, AskResponse has `llm_model`.
+- Citation mapping fixed: `_ordered_sources(raw_results, reranked)` resolves `RerankResult.index` → one consistent ordered list used by both context building and citation extraction
+- SQL injection fixed: filters allowlist (`statute/judgment/sro`, normalized) + expanding bindparam; `statute_id` bound not interpolated
+- Filter semantics: `statute_id` present → user filters ignored (statute-only, documented in code)
+- `embed_all_documents.py` — import + factory-call + `embed_texts` API fixed
+- Tests rewritten against real APIs (old ones used imaginary signatures): factory (14), llm_router, rag_pipeline (incl. reranker-reorder citation regression test), search_service (10, incl. Bengali injection strings), grpc server (10), noop
+- `.env.example` keys aligned to `Settings` fields (pydantic-settings 2.13 forbids extras → wrong keys broke ALL test collection)
+- bdlaws scraper scripts moved → `data-pipeline/scrapers/bdlaws_raw/`
+
 ## Important Notes:
 - Memory Updates(THIS FILE): This file is my persistent memory. Always update this file with new knowledge, insights, lessons learned, and, or context gained  during our conversations -
   even if I don't explicitly ask you to. The only time you should NOT update it is if I explicitly tell you not to. Condense new information into the appropriate section, or create a new section if needed.Keep it organized and non-redundant.

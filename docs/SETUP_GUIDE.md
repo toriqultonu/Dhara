@@ -53,11 +53,13 @@ Complete instructions for running the Dhara platform locally and in production, 
 git clone https://github.com/your-org/dhara.git
 cd dhara
 
-# Create .env.example from template
-cp .env.example .env.example
+# Create .env from the template
+cp .env.example .env
 ```
 
 Edit `.env` — the defaults work out of the box for local dev. Only fill in API keys if you want to use remote LLM providers.
+
+> **Note:** the Spring Boot backend also has sane defaults baked into `application.yml` (localhost DB/Redis/Kafka, dev JWT secret), so it starts with no `.env` at all. The RAG service is a special case: `app/config.py` reads **`rag-service/.env.example` directly** (`model_config env_file`), so either edit that file in place or export real environment variables (exported vars always win).
 
 ### Step 2: Start infrastructure (Docker)
 
@@ -115,10 +117,7 @@ OLLAMA_MODEL=qwen3:8b
 ```bash
 cd backend
 
-# Generate the Gradle wrapper (first time only)
-gradle wrapper
-
-# Run the backend
+# Wrapper is committed — no `gradle wrapper` step needed
 ./gradlew bootRun
 ```
 
@@ -139,17 +138,17 @@ curl http://localhost:8080/health
 ```bash
 cd rag-service
 
-# Create .env.example (if not using root-level .env.example)
-cp .env.example .env.example
+# Config is read from rag-service/.env.example (see note in Step 1) —
+# edit it in place, or export env vars to override.
 
-# Install dependencies
-uv sync
+# Install dependencies (incl. dev/test extras)
+uv sync --extra dev
 
 # Run the service
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
-The RAG service starts on `http://localhost:8000`.
+The RAG service starts on `http://localhost:8000` (HTTP) **and `localhost:50051` (gRPC)** — the gRPC server starts inside the FastAPI lifespan, one process serves both.
 
 Verify:
 ```bash
@@ -218,7 +217,7 @@ sudo usermod -aG docker $USER
 ```bash
 git clone https://github.com/your-org/dhara.git
 cd dhara
-cp .env.example .env.example
+cp .env.example .env
 ```
 
 Edit `.env` for production — **you MUST change these**:
@@ -248,6 +247,17 @@ ANTHROPIC_API_KEY=sk-ant-your-key
 SSLCOMMERZ_STORE_ID=your-store-id
 SSLCOMMERZ_STORE_PASSWORD=your-password
 SSLCOMMERZ_SANDBOX=false
+APP_BASE_URL=https://yourdomain.com      # payment success/fail/cancel callback base
+
+# OPTIONAL: Google OAuth login (POST /api/auth/google)
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
+
+# OPTIONAL: Backend → RAG transport (default: rest)
+# rest = HTTP to :8000, grpc = gRPC to :50051. Zero code change to switch.
+RAG_TRANSPORT=rest
+RAG_HTTP_URL=http://rag-service:8000
+RAG_SERVICE_HOST=rag-service
+RAG_SERVICE_PORT=50051
 ```
 
 #### Step 3: Deploy
@@ -468,7 +478,7 @@ docker compose -f docker-compose.prod.yml exec rag-service \
 If the new model has a different dimension, you also need a new Flyway migration to alter the `document_chunks.embedding` column:
 
 ```sql
--- Example: V7__update_embedding_dimension.sql
+-- Example: V11__update_embedding_dimension.sql  (V1–V10 already exist)
 ALTER TABLE document_chunks
 ALTER COLUMN embedding TYPE vector(1536);
 ```

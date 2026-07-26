@@ -2,6 +2,7 @@ package com.dhara.analysis;
 
 import com.dhara.analysis.dto.*;
 import com.dhara.common.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -36,14 +37,13 @@ public class AnalysisController {
         return ResponseEntity.ok(ApiResponse.ok(analysisService.queryDocument(userId, request)));
     }
 
-    @PostMapping(value = "/verify", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping("/verify")
     public ResponseEntity<ApiResponse<VerifyResponse>> verifyDocument(
             Authentication auth,
-            @RequestPart("file") MultipartFile file,
-            @RequestParam(required = false, defaultValue = "other") String documentType) throws IOException {
+            @Valid @RequestBody VerifyRequest request) {
 
         Long userId = Long.parseLong(auth.getName());
         return ResponseEntity.ok(ApiResponse.ok(
-                analysisService.verifyDocument(userId, file, documentType)));
+                analysisService.verifyDocument(userId, request)));
     }
 }

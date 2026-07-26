@@ -14,24 +14,19 @@ service RagService {
 
 message SearchRequest {
   string query = 1;
-  int32 limit = 2;
-  repeated string doc_types = 3;
-  int32 year_from = 4;
-  int32 year_to = 5;
-  string language = 6;
-  string user_id = 7;
-  string user_tier = 8;
+  string language = 2;   // "bn" | "en" (default "bn")
+  int32 top_k = 3;       // default 10 when 0
+  repeated string filters = 4;  // e.g. "statutes", "judgments", "sros"
 }
 
 message SearchResponse {
   repeated SearchResult results = 1;
-  int32 total = 2;
-  float search_time_ms = 3;
+  float search_time_ms = 2;
 }
 
 message SearchResult {
-  string id = 1;
-  string doc_type = 2;
+  string source_type = 1;
+  int64 source_id = 2;
   string title = 3;
   string snippet = 4;
   float score = 5;
@@ -40,27 +35,28 @@ message SearchResult {
 
 message AskRequest {
   string question = 1;
-  string language = 2;
-  string user_id = 3;
-  string user_tier = 4;
-  repeated string context_doc_ids = 5;
+  string language = 2;      // "bn" | "en" (default "bn")
+  string user_tier = 3;     // default "FREE"
+  string mode = 4;          // "rag" (default) | "document" | "statute"
+  string document_text = 5; // required when mode == "document"
+  int64 statute_id = 6;     // required when mode == "statute"
 }
 
 message AskResponse {
   string answer = 1;
   repeated Citation citations = 2;
-  string model_used = 3;
-  float latency_ms = 4;
-  string language = 5;
+  string llm_provider = 3;
+  int32 tokens_used = 4;
+  float cost_usd = 5;
+  string llm_model = 6;
 }
 
 message Citation {
-  string doc_id = 1;
-  string doc_type = 2;
+  string source_type = 1;
+  int64 source_id = 2;
   string title = 3;
-  string reference = 4;
+  string section_number = 4;
   string snippet = 5;
-  float relevance_score = 6;
 }
 
 message EmbeddingRequest {
@@ -69,7 +65,8 @@ message EmbeddingRequest {
 
 message EmbeddingResponse {
   repeated EmbeddingVector embeddings = 1;
-  int32 dimension = 2;
+  string model = 2;
+  int32 dimension = 3;
 }
 
 message EmbeddingVector {

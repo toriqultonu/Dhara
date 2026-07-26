@@ -413,7 +413,21 @@ npm run test:coverage
 
 ---
 
+## 📊 Implementation Status (updated 2026-07-26, post-fix session)
+
+**All audited gaps closed. `npx vitest run`: 87 tests / 15 files pass; `tsc --noEmit` clean; `npm run build` clean.**
+
+- **Auth live:** `components/providers/AuthProvider.tsx` mounted in `[locale]/layout.tsx` (with ToastProvider); restores token/user from localStorage (JWT-payload fallback — JWT has sub/email/role, no name claim), calls `api.setToken`; login/register pages wired to real endpoints; Header shows user + logout. Register sends `barCouncilId` not role (backend RegisterRequest has no role field).
+- **Detail routes built:** `statutes/[id]` + `judgments/[id]` with `components/legal/` (StatuteViewer, SectionNav w/ IntersectionObserver, JudgmentViewer, CitationMap, AmendmentHistory — last two render empty states until API exposes citation/amendment fields).
+- **UI prims added:** Modal, Pagination, Select, Toast (useToast), layout/Sidebar drawer.
+- **List filters wired** via `components/legal/ListFilterBar.tsx` (URL query params). NOTE: backend list endpoints only support page/size — pages fetch size=500 and filter in-memory server-side; add backend query params to scale.
+- **Workspace pages built:** documents dashboard, documents/[id] editor (2s-debounced auto-save, chip tags, PDF/DOCX/TXT export via `api.postForBlob`, share modal), templates browser, analysis 3-tab, profile. See root CLAUDE.md "Frontend Workspace Pages" section for conventions (lowercase status/category values, analysis query field is `query` not `question`).
+- **Pricing subscribe wired** → `/api/payments/init` → gateway redirect.
+- **Assets:** public/logo.svg + favicon.svg (no .ico).
+- **Tests:** vitest.config.ts + vitest.setup.ts (global mocks: next/navigation, next-intl, IntersectionObserver; explicit vitest imports, fireEvent not user-event). 15 test files across ui/search/chat/legal/lib/AuthProvider.
+- Still hardcoded: `ChatInterface.tsx` LAW_SECTIONS (12 statutes, assumes DB ids 1–12); analysis tab 3 links `/statutes/1..7` per V7 seed order.
+
 ## Important Notes
 - **Memory Updates (THIS FILE):** Always update with new knowledge, design decisions, and lessons learned — even if not explicitly asked. Condense into appropriate sections. Keep organized and non-redundant.
 - **Design system is locked** — Do not deviate from the color palette, shadow scale, or component patterns above without updating this file.
-- **Redesign applied April 2026** — All components in `frontend-redesign/` folder are the canonical new versions. The visual direction is Clean & Minimal SaaS (white-dominant, navy authority, gold accent).
+- **Redesign applied April 2026** — Redesign was applied in-place to `frontend/components/` (a separate `frontend-redesign/` folder does NOT exist despite earlier note). The visual direction is Clean & Minimal SaaS (white-dominant, navy authority, gold accent).

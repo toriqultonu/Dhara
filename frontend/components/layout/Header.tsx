@@ -4,12 +4,15 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 import LanguageToggle from "./LanguageToggle";
+import Sidebar from "./Sidebar";
 
 export default function Header() {
   const t = useTranslations("nav");
   const tc = useTranslations("common");
   const pathname = usePathname();
+  const { user, isAuthenticated, logout } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -24,6 +27,9 @@ export default function Header() {
     { href: "/ask",       label: t("ask") },
     { href: "/statutes",  label: t("statutes") },
     { href: "/judgments", label: t("judgments") },
+    ...(isAuthenticated ? [{ href: "/documents", label: t("documents") }] : []),
+    { href: "/templates", label: t("templates") },
+    { href: "/analysis",  label: t("analysis") },
     { href: "/pricing",   label: t("pricing") },
   ];
 
@@ -75,61 +81,57 @@ export default function Header() {
         {/* Right side */}
         <div className="hidden md:flex items-center gap-2.5">
           <LanguageToggle />
-          <Link
-            href="/login"
-            className="text-sm font-medium text-muted hover:text-foreground px-2.5 py-1.5 transition-colors"
-          >
-            {t("login")}
-          </Link>
-          <Link
-            href="/register"
-            className="text-sm font-semibold bg-accent hover:bg-accent-dark text-primary px-4 py-1.5 rounded-lg transition-colors"
-          >
-            {t("register")} →
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <Link
+                href="/profile"
+                dir="auto"
+                className="flex items-center gap-2 text-sm font-semibold text-foreground max-w-[180px] hover:text-primary transition-colors"
+              >
+                <span className="w-7 h-7 rounded-full bg-blue-50 text-primary text-[12px] font-extrabold flex items-center justify-center shrink-0 uppercase">
+                  {user?.name?.charAt(0) ?? "?"}
+                </span>
+                <span className="truncate">{user?.name}</span>
+              </Link>
+              <button
+                onClick={logout}
+                className="text-sm font-medium text-muted hover:text-foreground px-2.5 py-1.5 transition-colors"
+              >
+                {t("logout")}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-sm font-medium text-muted hover:text-foreground px-2.5 py-1.5 transition-colors"
+              >
+                {t("login")}
+              </Link>
+              <Link
+                href="/register"
+                className="text-sm font-semibold bg-accent hover:bg-accent-dark text-primary px-4 py-1.5 rounded-lg transition-colors"
+              >
+                {t("register")} →
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile hamburger */}
         <button
           className="md:hidden ml-auto p-1"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Toggle menu"
+          onClick={() => setMenuOpen(true)}
+          aria-label={t("menu")}
         >
           <svg className="w-6 h-6 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
       </div>
 
-      {/* Mobile menu */}
-      {menuOpen && (
-        <div className="md:hidden border-t border-gray-100 px-6 py-4 space-y-1 bg-white">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className={`block px-3 py-2 rounded-lg text-sm ${
-                isActive(link.href)
-                  ? "bg-blue-50 text-primary font-semibold"
-                  : "text-muted hover:text-foreground hover:bg-gray-50"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-          <div className="pt-3 border-t border-gray-100 flex items-center gap-3">
-            <LanguageToggle />
-            <Link href="/login" className="text-sm text-muted" onClick={() => setMenuOpen(false)}>
-              {t("login")}
-            </Link>
-            <Link href="/register" className="text-sm font-semibold text-primary" onClick={() => setMenuOpen(false)}>
-              {t("register")}
-            </Link>
-          </div>
-        </div>
-      )}
+      {/* Mobile drawer */}
+      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
     </header>
   );
 }

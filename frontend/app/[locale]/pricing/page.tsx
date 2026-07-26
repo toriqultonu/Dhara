@@ -2,14 +2,63 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
+import { useRouter } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/components/ui/Toast";
+import type { PlanResponse } from "@/lib/types";
+
+type PlanKey = "free" | "student" | "professional" | "firm";
+
+/** Frontend plan key → seeded backend plan name (subscription_plans.name). */
+const PLAN_NAME: Record<PlanKey, string> = {
+  free: "FREE",
+  student: "STUDENT",
+  professional: "PROFESSIONAL",
+  firm: "FIRM",
+};
 
 export default function PricingPage() {
   const t = useTranslations("pricing");
+  const te = useTranslations("errors");
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [annual, setAnnual] = useState(false);
+  const [subscribing, setSubscribing] = useState<PlanKey | null>(null);
 
-  const plans = ["free", "student", "professional", "firm"] as const;
+  const plans: PlanKey[] = ["free", "student", "professional", "firm"];
+
+  const handleSubscribe = async (plan: PlanKey) => {
+    if (!isAuthenticated) {
+      router.push(plan === "free" ? "/register" : "/login");
+      return;
+    }
+    if (plan === "free") {
+      toast(t("freePlanActive"), "success");
+      return;
+    }
+
+    setSubscribing(plan);
+    try {
+      const plansRes = await api.get<PlanResponse[]>("/api/plans");
+      const backendPlan = plansRes.data.find((p) => p.name === PLAN_NAME[plan]);
+      if (!backendPlan) {
+        toast(te("generic"), "error");
+        return;
+      }
+      const initRes = await api.post<{ gatewayUrl: string }>("/api/payments/init", {
+        planId: backendPlan.id,
+        currency: "BDT",
+      });
+      window.location.href = initRes.data.gatewayUrl;
+      return;
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : te("network"), "error");
+    } finally {
+      setSubscribing(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background py-16 px-6">
@@ -23,26 +72,28 @@ export default function PricingPage() {
 
           {/* Billing toggle */}
           <div className="inline-flex items-center gap-3 bg-white border-[1.5px] border-gray-200 rounded-full px-5 py-2">
-            <span className={`text-[14px] font-${!annual ? "bold" : "normal"} ${!annual ? "text-primary" : "text-muted"}`}>
-              Monthly
+            <span className={`text-[14px] ${!annual ? "font-bold text-primary" : "font-normal text-muted"}`}>
+              {t("monthly")}
             </span>
             <button
               onClick={() => setAnnual((a) => !a)}
-              className="relative w-11 h-6 rounded-full transition-colors duration-200"
-              style={{ background: annual ? "#1E3A5F" : "#CBD5E1" }}
-              aria-label="Toggle billing period"
+              className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                annual ? "bg-primary" : "bg-gray-300"
+              }`}
+              aria-label={t("billingToggle")}
             >
               <span
-                className="absolute top-[3px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transition-all duration-200"
-                style={{ left: annual ? 23 : 3 }}
+                className={`absolute top-[3px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transition-all duration-200 ${
+                  annual ? "left-[23px]" : "left-[3px]"
+                }`}
               />
             </button>
-            <span className={`text-[14px] font-${annual ? "bold" : "normal"} ${annual ? "text-primary" : "text-muted"}`}>
-              Annual
+            <span className={`text-[14px] ${annual ? "font-bold text-primary" : "font-normal text-muted"}`}>
+              {t("annual")}
             </span>
             {annual && (
               <span className="text-[11px] bg-green-50 text-secondary border border-green-200 px-2 py-0.5 rounded-full font-bold">
-                Save 20%
+                {t("save20")}
               </span>
             )}
           </div>
@@ -62,8 +113,8 @@ export default function PricingPage() {
                 }`}
               >
                 {featured && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-primary text-[11px] font-extrabold px-4 py-1 rounded-full tracking-wide whitespace-nowrap">
-                    MOST POPULAR
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-primary text-[11px] font-extrabold px-4 py-1 rounded-full tracking-wide whitespace-nowrap uppercase">
+                    {t("mostPopular")}
                   </div>
                 )}
 
@@ -80,7 +131,7 @@ export default function PricingPage() {
                 </div>
                 {annual && plan !== "free" && (
                   <p className={`text-[11px] font-semibold mb-5 ${featured ? "text-accent" : "text-secondary"}`}>
-                    Billed annually
+                    {t("billedAnnually")}
                   </p>
                 )}
 
@@ -96,13 +147,15 @@ export default function PricingPage() {
                 </ul>
 
                 <button
-                  className={`w-full py-2.5 rounded-lg border-[1.5px] text-[14px] font-bold transition-all ${
+                  onClick={() => handleSubscribe(plan)}
+                  disabled={subscribing !== null}
+                  className={`w-full py-2.5 rounded-lg border-[1.5px] text-[14px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                     featured
                       ? "bg-accent border-accent text-primary hover:bg-accent-dark"
                       : "bg-transparent border-primary text-primary hover:bg-primary hover:text-white"
                   }`}
                 >
-                  {t("subscribe")}
+                  {subscribing === plan ? t("redirecting") : t("subscribe")}
                 </button>
               </div>
             );

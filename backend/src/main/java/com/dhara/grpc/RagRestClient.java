@@ -3,6 +3,7 @@ package com.dhara.grpc;
 import com.dhara.search.dto.SearchResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -12,11 +13,12 @@ import java.util.Map;
 
 /**
  * HTTP REST client for the Python RAG service.
- * Used until gRPC proto stubs are generated.
+ * Active when {@code dhara.rag.transport=rest} (the default).
  */
 @Component
+@ConditionalOnProperty(prefix = "dhara.rag", name = "transport", havingValue = "rest", matchIfMissing = true)
 @Slf4j
-public class RagRestClient {
+public class RagRestClient implements RagClient {
 
     private final RestClient restClient;
 
@@ -44,6 +46,42 @@ public class RagRestClient {
             );
         }
     }
+
+    public RagSearchResponse search(RagSearchPayload payload) {
+        log.info("Calling RAG search: query={}, topK={}", payload.query(), payload.top_k());
+        try {
+            return restClient.post()
+                    .uri("/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .body(RagSearchResponse.class);
+        } catch (Exception e) {
+            log.error("RAG search call failed: {}", e.getMessage());
+            return new RagSearchResponse(List.of(), 0.0);
+        }
+    }
+
+    public record RagSearchPayload(
+            String query,
+            String language,
+            int top_k,
+            List<String> filters
+    ) {}
+
+    public record RagSearchResponse(
+            List<RagSearchResult> results,
+            double search_time_ms
+    ) {}
+
+    public record RagSearchResult(
+            String source_type,
+            Long source_id,
+            String title,
+            String snippet,
+            double score,
+            Map<String, String> metadata
+    ) {}
 
     public record RagAskPayload(
             String question,

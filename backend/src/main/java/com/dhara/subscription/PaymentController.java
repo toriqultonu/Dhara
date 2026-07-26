@@ -3,8 +3,7 @@ package com.dhara.subscription;
 import com.dhara.common.ApiResponse;
 import com.dhara.subscription.dto.PaymentInitRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,11 +18,10 @@ public class PaymentController {
 
     @PostMapping("/init")
     public ResponseEntity<ApiResponse<PaymentInitResponse>> initPayment(
-            @RequestBody PaymentInitRequest request,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
+            @RequestBody PaymentInitRequest request, Authentication auth) {
+        Long userId = Long.parseLong(auth.getName());
         String gatewayUrl = sslCommerzService.initPayment(
-                userDetails.getUsername(),
+                userId,
                 request.planId(),
                 request.currency()
         );

@@ -1,8 +1,10 @@
 syntax = "proto3";
+
 package dhara.rag;
 
 option java_multiple_files = true;
 option java_package = "com.dhara.grpc";
+option java_outer_classname = "RagServiceProto";
 
 service RagService {
   rpc Search (SearchRequest) returns (SearchResponse);
@@ -12,9 +14,9 @@ service RagService {
 
 message SearchRequest {
   string query = 1;
-  string language = 2;
-  int32 top_k = 3;
-  repeated string filters = 4;
+  string language = 2;   // "bn" | "en" (default "bn")
+  int32 top_k = 3;       // default 10 when 0
+  repeated string filters = 4;  // e.g. "statutes", "judgments", "sros"
 }
 
 message SearchResponse {
@@ -33,8 +35,11 @@ message SearchResult {
 
 message AskRequest {
   string question = 1;
-  string language = 2;
-  string user_tier = 3;
+  string language = 2;      // "bn" | "en" (default "bn")
+  string user_tier = 3;     // default "FREE"
+  string mode = 4;          // "rag" (default) | "document" | "statute"
+  string document_text = 5; // required when mode == "document"
+  int64 statute_id = 6;     // required when mode == "statute"
 }
 
 message AskResponse {
@@ -43,6 +48,7 @@ message AskResponse {
   string llm_provider = 3;
   int32 tokens_used = 4;
   float cost_usd = 5;
+  string llm_model = 6;
 }
 
 message Citation {

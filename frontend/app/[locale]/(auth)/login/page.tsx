@@ -3,14 +3,18 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
 
 export default function LoginPage() {
   const t  = useTranslations("auth");
+  const te = useTranslations("errors");
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading]   = useState(false);
@@ -21,24 +25,10 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/auth/login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        }
-      );
-      const data = await res.json();
-      if (data.success) {
-        localStorage.setItem("access_token", data.data.accessToken);
-        router.push("/search");
-      } else {
-        setError(data.error || "Invalid credentials.");
-      }
-    } catch {
-      setError("Unable to reach the server. Please try again.");
-    } finally {
+      await login(email, password);
+      router.push("/search");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : te("network"));
       setLoading(false);
     }
   };
@@ -49,18 +39,18 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-accent font-extrabold text-[22px]">ধ</span>
+            <span className="text-accent font-extrabold text-[22px] font-bengali">ধ</span>
           </div>
           <h1 className="text-[24px] font-extrabold text-foreground tracking-tight mb-1">
-            Welcome back
+            {t("welcomeBack")}
           </h1>
-          <p className="text-[14px] text-muted">Sign in to your Dhara account</p>
+          <p className="text-[14px] text-muted">{t("loginSubtitle")}</p>
         </div>
 
         <Card className="p-8" hoverable={false}>
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
-              label="Email address"
+              label={t("email")}
               type="email"
               placeholder="you@example.com"
               value={email}
@@ -69,7 +59,7 @@ export default function LoginPage() {
               required
             />
             <Input
-              label="Password"
+              label={t("password")}
               type="password"
               placeholder="••••••••"
               value={password}
@@ -79,24 +69,24 @@ export default function LoginPage() {
             />
             <div className="flex justify-end">
               <button type="button" className="text-[13px] text-primary hover:underline">
-                Forgot password?
+                {t("forgotPassword")}
               </button>
             </div>
             {error && (
-              <p className="text-[13px] text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              <p dir="auto" className="text-[13px] text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
             <Button variant="primary" type="submit" disabled={loading} full>
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? t("signingIn") : t("signIn")}
             </Button>
           </form>
 
           <div className="mt-5 pt-5 border-t border-gray-100 text-center">
             <p className="text-[14px] text-muted">
-              Don&apos;t have an account?{" "}
+              {t("noAccount")}{" "}
               <Link href="/register" className="text-primary font-semibold hover:underline">
-                Sign up free
+                {t("signUpFree")}
               </Link>
             </p>
           </div>

@@ -60,7 +60,10 @@ class RAGPipeline:
         else:
             reranked = []
 
-        context = self._build_context(raw_results, reranked)
+        # Single consistent ordering: sources[i] is what the prompt labels
+        # [Source i+1], so citation extraction indexes the same list.
+        sources = self._ordered_sources(raw_results, reranked)
+        context = self._build_context(sources)
         complexity = self._classify_complexity(question, context)
         prompt = build_legal_qa_prompt(question, context, language)
 
@@ -69,7 +72,7 @@ class RAGPipeline:
             complexity=complexity, user_tier=user_tier,
         )
 
-        citations = self._extract_citations(llm_response.text, raw_results, reranked)
+        citations = self._extract_citations(llm_response.text, sources)
 
         return RAGResponse(
             answer=llm_response.text, citations=citations,
@@ -78,9 +81,26 @@ class RAGPipeline:
             cost_usd=llm_response.cost_usd,
         )
 
-    def _build_context(self, raw_results: list[SearchResult], reranked: list[RerankResult]) -> str:
-        snippets = [r.text for r in reranked] if reranked else [r.snippet for r in raw_results[:5]]
-        return "\n\n".join(f"[Source {i}] {s}" for i, s in enumerate(snippets, 1))
+    def _ordered_sources(
+        self, raw_results: list[SearchResult], reranked: list[RerankResult],
+    ) -> list[SearchResult]:
+        """Resolve the reranked ordering back to the original search results.
+
+        ``RerankResult.index`` points into the documents list passed to the
+        reranker, which is built from ``raw_results`` in order. The returned
+        list is the exact order used to number ``[Source N]`` in the context,
+        so ``sources[N - 1]`` is always the document the LLM cited.
+        """
+        if reranked:
+            return [
+                raw_results[r.index]
+                for r in reranked
+                if 0 <= r.index < len(raw_results)
+            ]
+        return raw_results[:5]
+
+    def _build_context(self, sources: list[SearchResult]) -> str:
+        return "\n\n".join(f"[Source {i}] {s.snippet}" for i, s in enumerate(sources, 1))
 
     def _classify_complexity(self, question: str, context: str) -> float:
         score = 0.3
@@ -95,21 +115,24 @@ class RAGPipeline:
             score += 0.1
         return min(score, 1.0)
 
-    def _extract_citations(
-        self, answer: str, raw_results: list[SearchResult], reranked: list[RerankResult],
-    ) -> list[Citation]:
-        citations = []
+    def _extract_citations(self, answer: str, sources: list[SearchResult]) -> list[Citation]:
+        """Map ``[Source N]`` markers in the answer to the context source list.
+
+        ``sources`` must be the same list (same order) used by
+        ``_build_context``, so the numbering is consistent.
+        """
+        citations: list[Citation] = []
         for idx_str in re.findall(r"\[Source\s+(\d+)\]", answer):
             idx = int(idx_str) - 1
-            if 0 <= idx < len(raw_results):
-                r = raw_results[idx]
+            if 0 <= idx < len(sources):
+                r = sources[idx]
                 citations.append(Citation(
                     source_type=r.source_type, source_id=r.source_id,
                     title=r.title, snippet=r.snippet[:200],
                 ))
 
-        if not citations and raw_results:
-            for r in raw_results[:3]:
+        if not citations and sources:
+            for r in sources[:3]:
                 citations.append(Citation(
                     source_type=r.source_type, source_id=r.source_id,
                     title=r.title, snippet=r.snippet[:200],

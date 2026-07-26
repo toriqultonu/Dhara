@@ -33,4 +33,7 @@ public class UserSubscription extends AuditableEntity {
 
     @Column(name = "expires_at", columnDefinition = "TIMESTAMPTZ")
     private Instant expiresAt;
+
+    @Column(name = "transaction_id", length = 64)
+    private String transactionId;
 }

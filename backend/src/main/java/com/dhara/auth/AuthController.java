@@ -1,6 +1,7 @@
 package com.dhara.auth;
 
 import com.dhara.auth.dto.AuthResponse;
+import com.dhara.auth.dto.GoogleLoginRequest;
 import com.dhara.auth.dto.LoginRequest;
 import com.dhara.auth.dto.RegisterRequest;
 import com.dhara.common.ApiResponse;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final UserService userService;
+    private final GoogleOAuthService googleOAuthService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
@@ -28,6 +30,13 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = userService.login(request);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse<AuthResponse>> googleLogin(
+            @Valid @RequestBody GoogleLoginRequest request) {
+        AuthResponse response = googleOAuthService.loginWithGoogle(request.idToken());
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }

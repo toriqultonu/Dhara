@@ -4,18 +4,32 @@ import com.dhara.analysis.dto.*;
 import com.dhara.common.ResourceNotFoundException;
 import com.dhara.entity.AnalysisSession;
 import com.dhara.entity.User;
+import com.dhara.grpc.RagClient;
+import com.dhara.grpc.RagRestClient.RagAskPayload;
+import com.dhara.grpc.RagRestClient.RagAskResponse;
+import com.dhara.kafka.UsageEvent;
+import com.dhara.kafka.UsageEventProducer;
 import com.dhara.repository.AnalysisSessionRepository;
 import com.dhara.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -24,9 +38,14 @@ public class AnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(AnalysisService.class);
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
+    private static final int MAX_STORED_TEXT = 50000;
+    private static final int MAX_QUESTION_CONTEXT = 45000;
 
     private final AnalysisSessionRepository sessionRepository;
     private final UserRepository userRepository;
+    private final RagClient ragRestClient;
+    private final UsageEventProducer usageEventProducer;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public AnalysisUploadResponse uploadDocument(Long userId, MultipartFile file) throws IOException {
@@ -34,27 +53,24 @@ public class AnalysisService {
             throw new IllegalArgumentException("File exceeds 10 MB limit");
         }
 
-        String contentType = file.getContentType();
-        if (contentType == null || (!contentType.contains("pdf") && !contentType.contains("text")
-                && !contentType.contains("word") && !contentType.contains("msword"))) {
-            log.warn("Potentially unsupported file type: {}", contentType);
-        }
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
-        String extractedText = extractText(file);
+        ExtractedDocument extracted = extractText(file);
+        String extractedText = extracted.text();
         int wordCount = countWords(extractedText);
-        int estimatedPages = Math.max(1, wordCount / 300);
+        int pageCount = extracted.pageCount() != null
+                ? extracted.pageCount()
+                : Math.max(1, wordCount / 300);
 
         AnalysisSession session = new AnalysisSession();
         session.setId(UUID.randomUUID().toString().replace("-", "").substring(0, 16));
         session.setUser(user);
         session.setFileName(file.getOriginalFilename() != null ? file.getOriginalFilename() : "document");
-        session.setPageCount(estimatedPages);
+        session.setPageCount(pageCount);
         session.setWordCount(wordCount);
-        session.setExtractedText(extractedText.length() > 50000
-                ? extractedText.substring(0, 50000) : extractedText);
+        session.setExtractedText(extractedText.length() > MAX_STORED_TEXT
+                ? extractedText.substring(0, MAX_STORED_TEXT) : extractedText);
 
         sessionRepository.save(session);
 
@@ -75,76 +91,184 @@ public class AnalysisService {
         AnalysisSession session = sessionRepository.findByIdAndUserId(request.sessionId(), userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Analysis session", 0L));
 
-        String context = session.getExtractedText() != null
-                ? session.getExtractedText().substring(0,
-                        Math.min(2000, session.getExtractedText().length()))
-                : "";
+        String documentText = truncate(session.getExtractedText(), MAX_QUESTION_CONTEXT);
+        String language = request.language() != null ? request.language() : "bn";
 
-        // TODO: Route through RAG service for real AI analysis.
-        // For now, return a placeholder that describes what was uploaded.
-        String answer = buildPlaceholderAnswer(request.query(), session.getFileName(), context);
+        RagAskResponse ragResponse = ragRestClient.ask(new RagAskPayload(
+                request.query(), language, "FREE", "document", documentText, null));
 
-        List<AnalysisQueryResponse.LegalReference> references = List.of(
-                new AnalysisQueryResponse.LegalReference(
-                        "Bangladesh Labour Act 2006", "Section 20",
-                        "Applicable to employment-related queries"),
-                new AnalysisQueryResponse.LegalReference(
-                        "Contract Act 1872", "Section 10",
-                        "Applicable to agreement validity")
-        );
+        List<AnalysisQueryResponse.LegalReference> references = ragResponse.citations() == null
+                ? List.of()
+                : ragResponse.citations().stream()
+                        .map(c -> new AnalysisQueryResponse.LegalReference(
+                                c.title(), c.section_number(), c.snippet()))
+                        .toList();
 
-        return new AnalysisQueryResponse(answer, references, 0.75);
+        boolean ragAvailable = !"none".equals(ragResponse.llm_provider());
+        double confidence = !ragAvailable ? 0.0 : (references.isEmpty() ? 0.6 : 0.85);
+
+        publishUsageEvent(userId, "ASK", request.query(),
+                ragResponse.tokens_used(), ragResponse.llm_provider(),
+                BigDecimal.valueOf(ragResponse.cost_usd()));
+
+        return new AnalysisQueryResponse(ragResponse.answer(), references, confidence);
     }
 
-    public VerifyResponse verifyDocument(Long userId, MultipartFile file, String documentType) throws IOException {
-        String text = extractText(file);
-        return buildVerificationResponse(documentType, text);
-    }
+    @Transactional(readOnly = true)
+    public VerifyResponse verifyDocument(Long userId, VerifyRequest request) {
+        AnalysisSession session = sessionRepository.findByIdAndUserId(request.sessionId(), userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Analysis session", 0L));
 
-    private String extractText(MultipartFile file) throws IOException {
-        String contentType = file.getContentType();
-        if (contentType != null && contentType.contains("text")) {
-            return new String(file.getBytes(), StandardCharsets.UTF_8);
+        String documentText = truncate(session.getExtractedText(), MAX_QUESTION_CONTEXT);
+        String documentType = request.documentType();
+
+        String verificationPrompt = String.format(
+                "Verify this %s document for compliance with Bangladesh law. "
+                + "Identify valid clauses, warnings, and legal issues. "
+                + "Respond ONLY with JSON in exactly this shape: "
+                + "{\"valid\":[],\"warnings\":[],\"issues\":[]} where each array item is "
+                + "{\"section\":\"clause name\",\"text\":\"finding\",\"law\":\"applicable law\","
+                + "\"lawSection\":\"section number\",\"suggestion\":\"recommendation\"}. "
+                + "Cite specific Bangladeshi statutes (e.g. Contract Act 1872, "
+                + "Bangladesh Labour Act 2006). No prose outside the JSON.",
+                documentType);
+
+        RagAskResponse ragResponse = ragRestClient.ask(new RagAskPayload(
+                verificationPrompt, "en", "FREE", "document", documentText, null));
+
+        if (!"none".equals(ragResponse.llm_provider())) {
+            publishUsageEvent(userId, "ASK", "verify:" + documentType,
+                    ragResponse.tokens_used(), ragResponse.llm_provider(),
+                    BigDecimal.valueOf(ragResponse.cost_usd()));
+
+            VerifyResponse parsed = parseVerification(documentType, ragResponse.answer());
+            if (parsed != null) {
+                return parsed;
+            }
+            log.warn("Could not parse RAG verification answer; using rule-based fallback");
+        } else {
+            log.warn("RAG service unavailable for verification; using rule-based fallback");
         }
-        // For PDF/DOCX — basic byte extraction fallback.
-        // In production, integrate Apache PDFBox or Apache POI text extraction.
+
+        return buildRuleBasedVerification(documentType, session.getExtractedText());
+    }
+
+    // ── Text extraction ────────────────────────────────────────────────
+
+    private ExtractedDocument extractText(MultipartFile file) throws IOException {
+        String fileName = file.getOriginalFilename() != null
+                ? file.getOriginalFilename().toLowerCase(Locale.ROOT) : "";
+        String contentType = file.getContentType() != null ? file.getContentType() : "";
+        byte[] bytes = file.getBytes();
+
         try {
-            return new String(file.getBytes(), StandardCharsets.UTF_8)
-                    .replaceAll("[^\\x20-\\x7E\\n\\r]", " ")
-                    .replaceAll("\\s{3,}", "\n")
-                    .trim();
-        } catch (Exception e) {
+            if (fileName.endsWith(".pdf") || contentType.contains("pdf")) {
+                return extractPdf(bytes);
+            }
+            if (fileName.endsWith(".docx")
+                    || contentType.contains("officedocument.wordprocessingml")) {
+                return extractDocx(bytes);
+            }
+            if (fileName.endsWith(".txt") || contentType.contains("text")) {
+                return new ExtractedDocument(new String(bytes, StandardCharsets.UTF_8).trim(), null);
+            }
+            // Unknown type — attempt plain UTF-8 read as last resort.
+            log.warn("Unrecognized file type ({}); reading as plain text", contentType);
+            return new ExtractedDocument(new String(bytes, StandardCharsets.UTF_8).trim(), null);
+        } catch (IOException e) {
             log.warn("Could not extract text from {}: {}", file.getOriginalFilename(), e.getMessage());
-            return "Text extraction not available for this file type. Filename: " + file.getOriginalFilename();
+            throw new IllegalArgumentException(
+                    "Could not extract text from file. Supported formats: PDF, DOCX, TXT.");
         }
     }
+
+    private ExtractedDocument extractPdf(byte[] bytes) throws IOException {
+        try (PDDocument document = PDDocument.load(bytes)) {
+            if (document.isEncrypted()) {
+                throw new IllegalArgumentException("Encrypted PDFs are not supported");
+            }
+            String text = new PDFTextStripper().getText(document);
+            return new ExtractedDocument(text.trim(), document.getNumberOfPages());
+        }
+    }
+
+    private ExtractedDocument extractDocx(byte[] bytes) throws IOException {
+        try (XWPFDocument docx = new XWPFDocument(new ByteArrayInputStream(bytes));
+             XWPFWordExtractor extractor = new XWPFWordExtractor(docx)) {
+            String text = extractor.getText();
+            Integer pages = docx.getProperties().getExtendedProperties().getPages();
+            return new ExtractedDocument(text.trim(),
+                    pages != null && pages > 0 ? pages : null);
+        }
+    }
+
+    private record ExtractedDocument(String text, Integer pageCount) {}
+
+    // ── Helpers ────────────────────────────────────────────────────────
 
     private int countWords(String text) {
         if (text == null || text.isBlank()) return 0;
         return text.trim().split("\\s+").length;
     }
 
-    private String buildPlaceholderAnswer(String query, String fileName, String context) {
-        return String.format(
-                "Analyzing document \"%s\" for your query: \"%s\"\n\n" +
-                "Based on the document content, this section addresses your question. " +
-                "For a comprehensive analysis, the RAG pipeline will cross-reference " +
-                "with relevant Bangladesh laws.\n\n" +
-                "Note: Full AI analysis requires the RAG service to be connected.",
-                fileName, query);
+    private String truncate(String text, int maxLength) {
+        if (text == null) return "";
+        return text.length() > maxLength ? text.substring(0, maxLength) : text;
     }
 
-    private VerifyResponse buildVerificationResponse(String documentType, String text) {
-        String type = documentType != null ? documentType : "other";
-        String lowerText = text.toLowerCase();
+    private void publishUsageEvent(Long userId, String actionType, String queryText,
+                                   Integer tokensUsed, String llmProvider, BigDecimal costUsd) {
+        try {
+            usageEventProducer.send(new UsageEvent(
+                    userId, actionType, queryText, tokensUsed, llmProvider, costUsd, Instant.now()));
+        } catch (Exception e) {
+            log.warn("Failed to publish usage event for user {}: {}", userId, e.getMessage());
+        }
+    }
 
-        List<VerifyResponse.VerifyItem> valid = List.of(
-                new VerifyResponse.VerifyItem(
-                        "Document Format",
-                        "Document contains recognizable legal clauses",
-                        "Contract Act 1872", "Section 10",
-                        "Document structure appears legally valid.")
-        );
+    /** Parses the LLM's JSON verification answer. Returns null when unparseable. */
+    private VerifyResponse parseVerification(String documentType, String answer) {
+        if (answer == null || answer.isBlank()) return null;
+        try {
+            int start = answer.indexOf('{');
+            int end = answer.lastIndexOf('}');
+            if (start < 0 || end <= start) return null;
+            String json = answer.substring(start, end + 1);
+
+            LlmVerification result = objectMapper.readValue(json, LlmVerification.class);
+            List<VerifyResponse.VerifyItem> valid = result.valid() != null ? result.valid() : List.of();
+            List<VerifyResponse.VerifyItem> warnings = result.warnings() != null ? result.warnings() : List.of();
+            List<VerifyResponse.VerifyItem> issues = result.issues() != null ? result.issues() : List.of();
+
+            if (valid.isEmpty() && warnings.isEmpty() && issues.isEmpty()) return null;
+
+            return new VerifyResponse(documentType,
+                    new VerifyResponse.VerifySummary(valid.size(), warnings.size(), issues.size()),
+                    new VerifyResponse.VerifyResults(valid, warnings, issues));
+        } catch (Exception e) {
+            log.warn("Failed to parse verification JSON: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private record LlmVerification(
+            List<VerifyResponse.VerifyItem> valid,
+            List<VerifyResponse.VerifyItem> warnings,
+            List<VerifyResponse.VerifyItem> issues
+    ) {}
+
+    // ── Rule-based fallback (used only when the RAG service is down) ───
+
+    private VerifyResponse buildRuleBasedVerification(String documentType, String text) {
+        String type = documentType != null ? documentType : "other";
+        String lowerText = text != null ? text.toLowerCase(Locale.ROOT) : "";
+
+        List<VerifyResponse.VerifyItem> valid = new java.util.ArrayList<>();
+        valid.add(new VerifyResponse.VerifyItem(
+                "Document Format",
+                "Document contains recognizable legal clauses",
+                "Contract Act 1872", "Section 10",
+                "Document structure appears legally valid."));
 
         List<VerifyResponse.VerifyItem> warnings = new java.util.ArrayList<>();
         List<VerifyResponse.VerifyItem> issues = new java.util.ArrayList<>();
@@ -165,13 +289,11 @@ public class AnalysisService {
                         "Ensure salary payment is specified and within 7 working days of month end."));
             }
             if (lowerText.contains("8 hours") || lowerText.contains("working hours")) {
-                valid = new java.util.ArrayList<>(valid);
-                ((java.util.ArrayList<VerifyResponse.VerifyItem>) valid).add(
-                        new VerifyResponse.VerifyItem(
-                                "Working Hours",
-                                "Working hours clause detected",
-                                "Bangladesh Labour Act 2006", "Section 100",
-                                "Complies with the maximum 8 hours/day provision."));
+                valid.add(new VerifyResponse.VerifyItem(
+                        "Working Hours",
+                        "Working hours clause detected",
+                        "Bangladesh Labour Act 2006", "Section 100",
+                        "Complies with the maximum 8 hours/day provision."));
             }
         }
 

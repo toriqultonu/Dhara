@@ -28,7 +28,24 @@
       "Bash(mkdir -p /home/technonext/Dhara/frontend/app/\\\\[locale\\\\]/templates)",
       "Bash(mkdir -p /home/technonext/Dhara/frontend/app/\\\\[locale\\\\]/analysis)",
       "Bash(node -e ' *)",
-      "Bash(./gradlew compileJava)"
+      "Bash(./gradlew compileJava)",
+      "Bash(grep -n \"fetch\\\\|api\\\\.\\\\|process.env\\\\|const .*=.*\\\\[$\\\\|useState\" components/chat/ChatInterface.tsx)",
+      "Bash(uv run *)",
+      "Bash(uv sync *)",
+      "Bash(chmod +x *)",
+      "Bash(env)",
+      "Bash(./gradlew compileJava --console=plain -q)",
+      "Bash(./gradlew generateProto --console=plain -q)",
+      "Bash(./gradlew compileTestJava --console=plain -q2)",
+      "Bash(./gradlew compileJava --console=plain)",
+      "Bash(npm run *)",
+      "Bash(grep -oP \"^\\\\\\('[^']*',\\\\s*$\" -n /home/technonext/Dhara/backend/src/main/resources/db/migration/V7__seed_dummy_data.sql)",
+      "Bash(java -version)",
+      "Bash(./gradlew --version)",
+      "Bash(npx vitest *)",
+      "Bash(echo \"tsc exit: $?\")",
+      "Bash(./gradlew test *)",
+      "Bash(docker compose *)"
     ]
   }
 }

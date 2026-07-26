@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     search_bm25_weight: float = 0.4
     search_top_k: int = 10
 
+    # gRPC
+    grpc_port: int = 50051
+
     # Kafka
     kafka_bootstrap_servers: str = "localhost:9092"
     kafka_usage_topic: str = "dhara.usage"

@@ -1,9 +1,13 @@
 package com.dhara.search;
 
 import com.dhara.entity.AnalysisSession;
-import com.dhara.grpc.RagRestClient;
+import com.dhara.grpc.RagClient;
 import com.dhara.grpc.RagRestClient.RagAskPayload;
 import com.dhara.grpc.RagRestClient.RagAskResponse;
+import com.dhara.grpc.RagRestClient.RagSearchPayload;
+import com.dhara.grpc.RagRestClient.RagSearchResponse;
+import com.dhara.kafka.UsageEvent;
+import com.dhara.kafka.UsageEventProducer;
 import com.dhara.ratelimit.RateLimitExceededException;
 import com.dhara.ratelimit.RateLimiter;
 import com.dhara.repository.AnalysisSessionRepository;
@@ -14,7 +18,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,14 +30,35 @@ import java.util.stream.Collectors;
 public class SearchService {
 
     private final RateLimiter rateLimiter;
-    private final RagRestClient ragRestClient;
+    private final RagClient ragRestClient;
     private final AnalysisSessionRepository sessionRepository;
+    private final UsageEventProducer usageEventProducer;
 
     public SearchResponse search(SearchRequest request, Long userId, String userTier) {
         checkRateLimit(userId, userTier);
         log.info("Search request: query={}, language={}", request.query(), request.language());
-        // TODO: Call RAG service /search endpoint
-        return new SearchResponse(List.of(), null, 0);
+
+        RagSearchPayload payload = new RagSearchPayload(
+                request.query(),
+                request.language(),
+                request.topK(),
+                request.filters()
+        );
+
+        RagSearchResponse ragResponse = ragRestClient.search(payload);
+
+        List<SearchResponse.SearchResultItem> results = ragResponse.results() == null
+                ? List.of()
+                : ragResponse.results().stream()
+                        .map(r -> new SearchResponse.SearchResultItem(
+                                r.source_type(), r.source_id(), r.title(),
+                                r.snippet(), (float) r.score(),
+                                r.metadata() == null ? Map.of() : r.metadata()))
+                        .collect(Collectors.toList());
+
+        publishUsageEvent(userId, "SEARCH", request.query(), null, null, null);
+
+        return new SearchResponse(results, null, (float) ragResponse.search_time_ms());
     }
 
     public SearchResponse ask(AskRequest request, Long userId, String userTier) {
@@ -70,7 +98,21 @@ public class SearchService {
                                 c.section_number(), c.snippet()))
                         .collect(Collectors.toList());
 
+        publishUsageEvent(userId, "ASK", request.question(),
+                ragResponse.tokens_used(), ragResponse.llm_provider(),
+                BigDecimal.valueOf(ragResponse.cost_usd()));
+
         return new SearchResponse(List.of(), ragResponse.answer(), 0, citations);
+    }
+
+    private void publishUsageEvent(Long userId, String actionType, String queryText,
+                                   Integer tokensUsed, String llmProvider, BigDecimal costUsd) {
+        try {
+            usageEventProducer.send(new UsageEvent(
+                    userId, actionType, queryText, tokensUsed, llmProvider, costUsd, Instant.now()));
+        } catch (Exception e) {
+            log.warn("Failed to publish usage event for user {}: {}", userId, e.getMessage());
+        }
     }
 
     private void checkRateLimit(Long userId, String userTier) {

@@ -651,6 +651,23 @@ To find which Java files implement a concept, search `graphify-out/graph.json` b
 11. **Export dependencies** — `openhtmltopdf-pdfbox:1.0.10` for PDF, `poi-ooxml:5.3.0` for DOCX must be in build.gradle
 12. **Analysis AI responses** — `AnalysisService` currently returns placeholder responses; TODO: integrate with RAG service for real document Q&A
 
+## 📊 Implementation Status (updated 2026-07-26, post-fix session)
+
+**All previously audited stubs fixed. `./gradlew test`: 122 tests, 0 failures.**
+
+- `SearchService.search()` — real, calls rag-service `/search` via `RagClient`
+- User tier — resolved via `SubscriptionService.getUserTier(userId)` (ACTIVE non-expired sub → plan name, else FREE)
+- `SslCommerzService` — real sandbox/prod HTTP (gwprocess v4 init + validator API); persists PENDING `UserSubscription` with `transactionId` (V10 migration adds column + `subscription_plans.duration_days`); `validateAndActivate` activates pending sub, expires old ACTIVE, idempotent on duplicate IPN. Uses injected `RestClient.Builder` (testable via MockRestServiceServer)
+- `AnalysisService` — real PDFBox/POI text extraction; Q&A + verification route through RAG document mode (text truncated to 45k chars); rule-based verification only as fallback when RAG down
+- `UsageEventProducer` — fired on SEARCH/ASK (search + analysis), try/catch so Kafka failure never breaks requests
+- `SwaggerConfig`, `GoogleOAuthService` (tokeninfo verification, `POST /api/auth/google`), `VerifyRequest`, Create/UpdateDocumentRequest split — all created
+- **RAG transport abstraction:** `RagClient` interface (grpc/RagClient.java) with two impls selected by `dhara.rag.transport` (`rest` default → `RagRestClient`; `grpc` → `RagServiceClient` on generated stubs). Payload/response records live nested in `RagRestClient`. Zero code change to switch.
+- Latent bugs fixed: `PaymentController` used `@AuthenticationPrincipal UserDetails` but JwtAuthFilter sets String principal (NPE) → now `Long.parseLong(auth.getName())`; SecurityConfig permit path fixed `/api/payment/webhook/**` → `/api/webhooks/sslcommerz/**`
+- `src/test` — 18 test classes (unit + @WebMvcTest controller tests, @MockitoBean, no @SpringBootTest/DB). `DocumentService.delete` is HARD delete (test asserts actual behavior)
+- SSLCommerz customer address/phone are placeholders (User entity has no such columns)
+
+**Remaining env issue:** local Postgres credentials (`issue.md` boot failure) — config, not code.
+
 ## Important Notes:
 - Memory Updates(THIS FILE): This file is my persistent memory. Always update this file with new knowledge, insights, lessons learned, and, or context gained  during our conversations -
   even if I don't explicitly ask you to. The only time you should NOT update it is if I explicitly tell you not to. Condense new information into the appropriate section, or create a new section if needed.Keep it organized and non-redundant.

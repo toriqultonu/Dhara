@@ -60,7 +60,7 @@ public class DocumentService {
     }
 
     @Transactional
-    public DocumentResponse createDocument(Long userId, DocumentRequest request) {
+    public DocumentResponse createDocument(Long userId, CreateDocumentRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
@@ -91,7 +91,7 @@ public class DocumentService {
     }
 
     @Transactional
-    public DocumentResponse updateDocument(Long userId, Long docId, DocumentRequest request) {
+    public DocumentResponse updateDocument(Long userId, Long docId, UpdateDocumentRequest request) {
         UserDocument doc = findOwnedDocument(userId, docId);
 
         if (request.title() != null) doc.setTitle(request.title());

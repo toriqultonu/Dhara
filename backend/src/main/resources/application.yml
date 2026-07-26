@@ -44,6 +44,7 @@ dhara:
     rag-service-port: ${RAG_SERVICE_PORT:50051}
 
   rag:
+    transport: ${RAG_TRANSPORT:rest}   # rest | grpc
     http-url: ${RAG_HTTP_URL:http://localhost:8000}
 
   cors:
@@ -59,3 +60,9 @@ dhara:
     store-id: ${SSLCOMMERZ_STORE_ID:}
     store-password: ${SSLCOMMERZ_STORE_PASSWORD:}
     is-sandbox: ${SSLCOMMERZ_SANDBOX:true}
+
+  app:
+    base-url: ${APP_BASE_URL:http://localhost:8080}
+
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}

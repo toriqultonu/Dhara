@@ -25,7 +25,7 @@ export function useSearch({ debounceMs = 300 }: UseSearchOptions = {}): UseSearc
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalResults, setTotalResults] = useState(0);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const search = useCallback(async (q?: string) => {
     const searchQuery = q ?? query;

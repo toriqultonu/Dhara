@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config import settings
+from app.grpc_server import create_grpc_server
 from app.providers.llm.factory import create_llm_provider
 from app.providers.embedding.factory import create_embedding_provider
 from app.providers.reranker.factory import create_reranker_provider
@@ -37,8 +38,23 @@ async def lifespan(app: FastAPI):
     app.state.search_service = search_service
     app.state.rag_pipeline = rag_pipeline
 
+    # gRPC server shares this process (and these exact service instances)
+    # with the HTTP app — started here, stopped gracefully on shutdown.
+    grpc_server = create_grpc_server(
+        search_service=search_service,
+        rag_pipeline=rag_pipeline,
+        embedding_provider=embedding_provider,
+        port=settings.grpc_port,
+    )
+    await grpc_server.start()
+    app.state.grpc_server = grpc_server
+    logger.info("gRPC server listening on port %d", settings.grpc_port)
+
     logger.info("All providers initialized.")
     yield
+
+    logger.info("Shutting down gRPC server...")
+    await grpc_server.stop(grace=5)
 
 
 app = FastAPI(

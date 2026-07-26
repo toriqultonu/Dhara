@@ -52,6 +52,24 @@ class ApiClient {
     return this.request<T>(path, { method: "DELETE" });
   }
 
+  /** POST that returns raw file bytes (e.g. document export). */
+  async postForBlob(path: string, body: unknown): Promise<Blob> {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+    };
+    const response = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Unknown error" }));
+      throw new ApiError(response.status, error.error || "Request failed");
+    }
+    return response.blob();
+  }
+
   async uploadFile<T>(path: string, file: File, extraFields?: Record<string, string>): Promise<ApiResponse<T>> {
     const form = new FormData();
     form.append("file", file);
